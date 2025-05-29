@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, RefreshCw, Twitter, Linkedin, Wand2, SettingsIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { initiateTwitterAuth, initiateLinkedInAuth, postToLinkedIn, postToTwitter, testLinkedInToken } from '@/lib/social-service';
 
 interface GeneratedContent {
   twitter: string;
@@ -224,24 +225,54 @@ const Index = () => {
     }
   };
 
-  const handlePost = (platform: 'twitter' | 'linkedin') => {
-    if (!generatedContent) {
+  const handlePost = async (platform: 'twitter' | 'linkedin', account: 'aniket' | 'neuralArc') => {
+    try {
+      if (!generatedContent) {
+        toast({
+          title: "No Content",
+          description: "Please generate content first before posting.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const content = platform === 'twitter' ? generatedContent.twitter : generatedContent.linkedin;
+
+      if (platform === 'twitter') {
+        await postToTwitter(content, account);
+      } else {
+        await postToLinkedIn(content, account);
+      }
+
       toast({
-        title: "No Content",
-        description: "Please generate content first before posting.",
+        title: "Success",
+        description: `Posted to ${platform === 'twitter' ? 'Twitter' : 'LinkedIn'} successfully!`,
+      });
+    } catch (error) {
+      console.error('Error posting:', error);
+      toast({
+        title: "Error",
+        description: "Failed to post content. Please try again.",
         variant: "destructive",
       });
-      return;
     }
+  };
 
-    // Since we can't actually post to social media without OAuth, we'll copy to clipboard
-    const content = platform === 'twitter' ? generatedContent.twitter : generatedContent.linkedin;
-    navigator.clipboard.writeText(content);
-    
-    toast({
-      title: `Ready for ${platform === 'twitter' ? 'Twitter' : 'LinkedIn'}!`,
-      description: "Content copied to clipboard. You can now paste it on the platform.",
-    });
+  const handleTestToken = async (account: 'aniket' | 'neuralArc') => {
+    try {
+      const result = await testLinkedInToken(account);
+      toast({
+        title: "Token Test Successful",
+        description: `LinkedIn token for ${account} is valid.`,
+      });
+    } catch (error) {
+      console.error('Error testing token:', error);
+      toast({
+        title: "Token Test Failed",
+        description: `LinkedIn token for ${account} is invalid. Please check the token.`,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -423,21 +454,39 @@ const Index = () => {
                       Share Your Content
                     </Label>
                     <div className="grid grid-cols-2 gap-4">
-                      <Button 
-                        onClick={() => handlePost('twitter')}
-                        className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
-                      >
-                        <Twitter className="mr-2 h-4 w-4" />
-                        Post on Twitter
-                      </Button>
-                      
-                      <Button 
-                        onClick={() => handlePost('linkedin')}
-                        className="bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
-                      >
-                        <Linkedin className="mr-2 h-4 w-4" />
-                        Post on LinkedIn
-                      </Button>
+                      <div className="space-y-4">
+                        <h3 className="font-medium text-gray-700">Aniket's Accounts</h3>
+                        <Button 
+                          onClick={() => handleTestToken('aniket')}
+                          className="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 transition-all duration-200"
+                        >
+                          Test Aniket's LinkedIn Token
+                        </Button>
+                        <Button 
+                          onClick={() => handlePost('linkedin', 'aniket')}
+                          className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
+                        >
+                          <Linkedin className="mr-2 h-4 w-4" />
+                          Post on Aniket's LinkedIn
+                        </Button>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h3 className="font-medium text-gray-700">NeuralArc's Accounts</h3>
+                        <Button 
+                          onClick={() => handleTestToken('neuralArc')}
+                          className="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 transition-all duration-200"
+                        >
+                          Test NeuralArc's LinkedIn Token
+                        </Button>
+                        <Button 
+                          onClick={() => handlePost('linkedin', 'neuralArc')}
+                          className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
+                        >
+                          <Linkedin className="mr-2 h-4 w-4" />
+                          Post on NeuralArc's LinkedIn
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </>

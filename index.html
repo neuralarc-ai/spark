@@ -1,10 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tweet Spark - AI Social Media Post Generator</title>
+    <title>TweetSpark - Social Media Content Generator</title>
     <meta name="description" content="Generate engaging social media content with AI for Twitter and LinkedIn" />
     <meta name="author" content="Lovable" />
 
@@ -16,6 +16,23 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <script type="text/javascript">
+      window.linkedInInit = function() {
+        window.IN.init({
+          api_key: '78ej3ud15itr4m',
+          authorize: true,
+          scope: 'w_member_social',
+          onLoad: function() {
+            console.log('LinkedIn SDK loaded');
+          },
+          onError: function(error) {
+            console.error('LinkedIn SDK error:', error);
+          }
+        });
+      };
+    </script>
+    <script type="text/javascript" src="https://platform.linkedin.com/in.js" async defer></script>
   </head>
 
   <body>
