@@ -6,9 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, RefreshCw, Twitter, Linkedin, Wand2 } from "lucide-react";
+import { Sparkles, RefreshCw, Twitter, Linkedin, Wand2, SettingsIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+
+interface GeneratedContent {
+  twitter: string;
+  linkedin: string;
+}
 
 const Index = () => {
   const [formData, setFormData] = useState({
@@ -18,10 +23,9 @@ const Index = () => {
     audience: '',
     keyPoints: ''
   });
-  const [generatedContent, setGeneratedContent] = useState('');
+  const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isHumanizing, setIsHumanizing] = useState(false);
-  const [apiKey, setApiKey] = useState('');
   const { toast } = useToast();
 
   const handleInputChange = (field: string, value: string) => {
@@ -29,10 +33,12 @@ const Index = () => {
   };
 
   const generateContent = async () => {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    
     if (!apiKey) {
       toast({
-        title: "API Key Required",
-        description: "Please enter your Google Gemini API key to generate content.",
+        title: "API Key Missing",
+        description: "Please add your Google Gemini API key to the .env.local file.",
         variant: "destructive",
       });
       return;
@@ -51,15 +57,24 @@ const Index = () => {
     console.log("Generating content with:", formData);
 
     try {
-      const prompt = `Create a ${formData.type || 'social media'} post for social media with the following specifications:
-      - Topic: ${formData.topic}
-      - Tone: ${formData.tone}
-      - Target Audience: ${formData.audience || 'General audience'}
-      - Key Points: ${formData.keyPoints || 'None specified'}
+      const prompt = `Create two versions of a social media post about ${formData.topic} with a ${formData.tone} tone. 
+      Target audience: ${formData.audience || 'General audience'}
+      Key points to include: ${formData.keyPoints || 'None specified'}
       
-      Make it engaging, authentic, and suitable for both Twitter and LinkedIn. Keep it concise but impactful.`;
+      Requirements:
+      - Create TWO versions:
+        1. Twitter version (max 280 characters)
+        2. LinkedIn version (max 3000 characters)
+      - Include relevant emojis in both versions
+      - Add 3-5 relevant hashtags
+      - Make both versions engaging and authentic
+      - No bullet points, asterisks, or special formatting
+      - No explanations or tips
+      - Format the response as:
+        TWITTER: [Twitter post]
+        LINKEDIN: [LinkedIn post]`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,21 +88,39 @@ const Index = () => {
                 }
               ]
             }
-          ]
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          }
         })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate content');
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to generate content');
       }
 
       const data = await response.json();
       const content = data.candidates[0].content.parts[0].text;
-      setGeneratedContent(content);
+      
+      // Split the content into Twitter and LinkedIn versions
+      const twitterMatch = content.match(/TWITTER:([\s\S]*?)(?=LINKEDIN:|$)/);
+      const linkedinMatch = content.match(/LINKEDIN:([\s\S]*?)$/);
+      
+      const twitterContent = twitterMatch ? twitterMatch[1].trim() : '';
+      const linkedinContent = linkedinMatch ? linkedinMatch[1].trim() : '';
+      
+      setGeneratedContent({
+        twitter: twitterContent,
+        linkedin: linkedinContent
+      });
       
       toast({
         title: "Content Generated!",
-        description: "Your social media post has been created successfully.",
+        description: "Your social media posts have been created successfully.",
       });
     } catch (error) {
       console.error('Error generating content:', error);
@@ -102,6 +135,8 @@ const Index = () => {
   };
 
   const humanizeContent = async () => {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
     if (!generatedContent) {
       toast({
         title: "No Content",
@@ -115,13 +150,21 @@ const Index = () => {
     console.log("Humanizing content:", generatedContent);
 
     try {
-      const prompt = `Humanize and improve the following social media post. Make it more natural, conversational, and engaging while maintaining the core message. Add personality and make it feel authentic:
+      const prompt = `Make these social media posts more natural and conversational while keeping the same message. Return ONLY the improved versions, no explanations or formatting:
 
-      ${generatedContent}
-      
-      Return only the improved version without any explanations.`;
+        TWITTER: ${generatedContent.twitter}
+        LINKEDIN: ${generatedContent.linkedin}
+        
+        Requirements:
+        - Return ONLY the posts in the same format
+        - Keep all emojis and hashtags
+        - No explanations or tips
+        - No special formatting
+        - Format the response as:
+          TWITTER: [Twitter post]
+          LINKEDIN: [LinkedIn post]`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -135,21 +178,39 @@ const Index = () => {
                 }
               ]
             }
-          ]
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          }
         })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to humanize content');
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to humanize content');
       }
 
       const data = await response.json();
-      const humanizedContent = data.candidates[0].content.parts[0].text;
-      setGeneratedContent(humanizedContent);
+      const content = data.candidates[0].content.parts[0].text;
+      
+      // Split the content into Twitter and LinkedIn versions
+      const twitterMatch = content.match(/TWITTER:([\s\S]*?)(?=LINKEDIN:|$)/);
+      const linkedinMatch = content.match(/LINKEDIN:([\s\S]*?)$/);
+      
+      const twitterContent = twitterMatch ? twitterMatch[1].trim() : '';
+      const linkedinContent = linkedinMatch ? linkedinMatch[1].trim() : '';
+      
+      setGeneratedContent({
+        twitter: twitterContent,
+        linkedin: linkedinContent
+      });
       
       toast({
         title: "Content Humanized!",
-        description: "Your post has been made more natural and engaging.",
+        description: "Your posts have been made more natural and engaging.",
       });
     } catch (error) {
       console.error('Error humanizing content:', error);
@@ -174,7 +235,8 @@ const Index = () => {
     }
 
     // Since we can't actually post to social media without OAuth, we'll copy to clipboard
-    navigator.clipboard.writeText(generatedContent);
+    const content = platform === 'twitter' ? generatedContent.twitter : generatedContent.linkedin;
+    navigator.clipboard.writeText(content);
     
     toast({
       title: `Ready for ${platform === 'twitter' ? 'Twitter' : 'LinkedIn'}!`,
@@ -192,11 +254,10 @@ const Index = () => {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Tweet Spark
             </h1>
-            <Link 
-              to="/settings" 
-              className="ml-4 text-blue-600 hover:text-blue-800 underline text-sm"
-            >
-              Settings
+            <Link to="/settings">
+              <Button variant="ghost" size="icon" className="ml-4 text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                <SettingsIcon className="h-5 w-5" />
+              </Button>
             </Link>
           </div>
           <p className="text-gray-600 text-lg">
@@ -214,18 +275,6 @@ const Index = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="api-key">Google Gemini API Key</Label>
-                <Input
-                  id="api-key"
-                  type="password"
-                  placeholder="Enter your Gemini API key"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  className="border-2 border-gray-200 focus:border-blue-500 transition-colors"
-                />
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="topic">Topic *</Label>
                 <Input
@@ -324,10 +373,19 @@ const Index = () => {
             <CardContent className="p-6 space-y-6">
               {generatedContent ? (
                 <>
-                  <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
-                    <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
-                      {generatedContent}
-                    </p>
+                  <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200 space-y-4">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-500 mb-2">Twitter Version</h3>
+                      <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                        {generatedContent.twitter}
+                      </p>
+                    </div>
+                    <div className="border-t pt-4">
+                      <h3 className="text-sm font-semibold text-gray-500 mb-2">LinkedIn Version</h3>
+                      <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                        {generatedContent.linkedin}
+                      </p>
+                    </div>
                   </div>
 
                   <div className="flex gap-3">

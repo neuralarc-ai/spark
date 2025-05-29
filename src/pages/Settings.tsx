@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, Twitter, Linkedin, Save } from "lucide-react";
+import { Settings as SettingsIcon, Twitter, Linkedin, Save, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Settings = () => {
@@ -50,8 +49,10 @@ const Settings = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <Link to="/" className="text-blue-600 hover:text-blue-800 mr-4">
-              ← Back to Generator
+            <Link to="/">
+              <Button variant="ghost" size="icon" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
             </Link>
             <SettingsIcon className="w-8 h-8 text-blue-600 mr-3" />
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
