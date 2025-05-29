@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, RefreshCw, Twitter, Linkedin, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const [formData, setFormData] = useState({
@@ -182,14 +183,24 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
-            Tweet Spark
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Generate engaging social media content with AI, humanize it for authenticity, and share across platforms
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center mb-4">
+            <Sparkles className="w-8 h-8 text-blue-600 mr-3" />
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Tweet Spark
+            </h1>
+            <Link 
+              to="/settings" 
+              className="ml-4 text-blue-600 hover:text-blue-800 underline text-sm"
+            >
+              Settings
+            </Link>
+          </div>
+          <p className="text-gray-600 text-lg">
+            AI-powered social media content generator
           </p>
         </div>
 
