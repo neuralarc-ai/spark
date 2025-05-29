@@ -266,13 +266,8 @@ const Index = () => {
           <div className="flex items-center justify-center mb-4">
             <Sparkles className="w-8 h-8 text-blue-600 mr-3" />
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Tweet Spark
+              Social Spark
             </h1>
-            <Link to="/settings">
-              <Button variant="ghost" size="icon" className="ml-4 text-blue-600 hover:text-blue-800 hover:bg-blue-50">
-                <SettingsIcon className="h-5 w-5" />
-              </Button>
-            </Link>
           </div>
           <p className="text-gray-600 text-lg">
             AI-powered social media content generator
