@@ -79,22 +79,22 @@ export const initiateLinkedInAuth = () => {
 
 export const postToTwitter = async (content: string, account: 'aniket' | 'neuralArc') => {
   try {
-    const response = await fetch('https://api.twitter.com/2/tweets', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${ACCOUNTS[account].twitter.accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: content
-      })
-    });
+    // Create a Twitter Web Intent URL with the content
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(content)}`;
 
-    if (!response.ok) {
-      throw new Error('Failed to post to Twitter');
-    }
+    // Open in a new window
+    const width = 600;
+    const height = 400;
+    const left = (window.innerWidth - width) / 2;
+    const top = (window.innerHeight - height) / 2;
 
-    return await response.json();
+    window.open(
+      twitterUrl,
+      'twitter-share',
+      `width=${width},height=${height},top=${top},left=${left},location=yes,status=yes,scrollbars=yes`
+    );
+
+    return { success: true, message: 'Twitter share window opened' };
   } catch (error) {
     console.error('Error posting to Twitter:', error);
     throw error;

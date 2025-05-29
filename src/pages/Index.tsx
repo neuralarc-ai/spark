@@ -258,23 +258,6 @@ const Index = () => {
     }
   };
 
-  const handleTestToken = async (account: 'aniket' | 'neuralArc') => {
-    try {
-      const result = await testLinkedInToken(account);
-      toast({
-        title: "Token Test Successful",
-        description: `LinkedIn token for ${account} is valid.`,
-      });
-    } catch (error) {
-      console.error('Error testing token:', error);
-      toast({
-        title: "Token Test Failed",
-        description: `LinkedIn token for ${account} is invalid. Please check the token.`,
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
       <div className="max-w-4xl mx-auto">
@@ -453,38 +436,36 @@ const Index = () => {
                     <Label className="text-lg font-semibold text-gray-700 mb-4 block">
                       Share Your Content
                     </Label>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       <div className="space-y-4">
                         <h3 className="font-medium text-gray-700">Aniket's Accounts</h3>
-                        <Button 
-                          onClick={() => handleTestToken('aniket')}
-                          className="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 transition-all duration-200"
-                        >
-                          Test Aniket's LinkedIn Token
-                        </Button>
                         <Button 
                           onClick={() => handlePost('linkedin', 'aniket')}
                           className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
                         >
-                          <Linkedin className="mr-2 h-4 w-4" />
-                          Post on Aniket's LinkedIn
+                          <Linkedin className="mr-2 h-4 w-4" /> Post (Aniket)
+                        </Button>
+                        <Button 
+                          onClick={() => handlePost('twitter', 'aniket')}
+                          className="w-full bg-blue-400 hover:bg-blue-500 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
+                        >
+                          <Twitter className="mr-2 h-4 w-4" /> Post (Aniket)
                         </Button>
                       </div>
 
                       <div className="space-y-4">
                         <h3 className="font-medium text-gray-700">NeuralArc's Accounts</h3>
                         <Button 
-                          onClick={() => handleTestToken('neuralArc')}
-                          className="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 transition-all duration-200"
-                        >
-                          Test NeuralArc's LinkedIn Token
-                        </Button>
-                        <Button 
                           onClick={() => handlePost('linkedin', 'neuralArc')}
                           className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
                         >
-                          <Linkedin className="mr-2 h-4 w-4" />
-                          Post on NeuralArc's LinkedIn
+                          <Linkedin className="mr-2 h-4 w-4" /> Post (NeuralArc)
+                        </Button>
+                        <Button 
+                          onClick={() => handlePost('twitter', 'neuralArc')}
+                          className="w-full bg-blue-400 hover:bg-blue-500 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
+                        >
+                          <Twitter className="mr-2 h-4 w-4" /> Post (NeuralArc)
                         </Button>
                       </div>
                     </div>
