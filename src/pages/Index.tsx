@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,10 +37,10 @@ const Index = () => {
       return;
     }
 
-    if (!formData.topic || !formData.tone || !formData.type) {
+    if (!formData.topic || !formData.tone) {
       toast({
         title: "Missing Information",
-        description: "Please fill in topic, tone, and type fields.",
+        description: "Please fill in topic and tone fields.",
         variant: "destructive",
       });
       return;
@@ -51,7 +50,7 @@ const Index = () => {
     console.log("Generating content with:", formData);
 
     try {
-      const prompt = `Create a ${formData.type} post for social media with the following specifications:
+      const prompt = `Create a ${formData.type || 'social media'} post for social media with the following specifications:
       - Topic: ${formData.topic}
       - Tone: ${formData.tone}
       - Target Audience: ${formData.audience || 'General audience'}
@@ -245,7 +244,7 @@ const Index = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="type">Content Type *</Label>
+                <Label htmlFor="type">Content Type</Label>
                 <Select onValueChange={(value) => handleInputChange('type', value)}>
                   <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500">
                     <SelectValue placeholder="Select content type" />
