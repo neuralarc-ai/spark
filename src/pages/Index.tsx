@@ -125,7 +125,6 @@ const Index = () => {
     topic: '',
     tone: '',
     type: '',
-    audience: '',
     keyPoints: ''
   });
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
@@ -168,30 +167,31 @@ const Index = () => {
 
     try {
       const prompt = `Create two versions of a social media post about ${formData.topic} with a ${formData.tone} tone. 
-      Target audience: ${formData.audience || 'General audience'}
       Key points to include: ${formData.keyPoints || 'None specified'}
       
       Requirements:
-      - Create TWO versions:
-        1. Twitter version (max 280 characters, concise, no emojis)
-        2. LinkedIn version (detailed, at least 1000 characters, up to 3000 characters, no emojis, in-depth, professional, and comprehensive; use multiple paragraphs, include an introduction, main points, and a conclusion)
+      - Create TWO versions that are natural, conversational, and human-like:
+        1. Twitter version (max 280 characters, concise, engaging, and authentic)
+        2. LinkedIn version (detailed, at least 1000 characters, up to 3000 characters, professional but conversational)
+      - Make the content feel natural and human-written
       - Add 3-5 relevant hashtags to both versions
       - For each version, also provide:
         - Best time to post (for maximum engagement, in IST - Indian Standard Time, UTC+5:30)
-        - Expected reach (a rough estimate)
-        - A detailed image prompt for an AI image generator, using only these colors: #161616, #1E342F, #2B2521, #3987BE, #495663, #97A487, #A8B0B8, #A9A9A9, #B7A694, #B7BEAE, #C6AEA3, #CFD2D4, #CFD4C9, #D0C3B5, #D48EA3, #E3E2DF, #F8F7F3. The image should be visually appealing, relevant to the post, and suitable for direct posting on LinkedIn or Twitter.
-      - Make both versions engaging and authentic
-      - No bullet points, asterisks, or special formatting
-      - No explanations or tips
+        - Expected reach (provide realistic estimates for small following accounts):
+          Twitter: Base estimate 50-200 for small accounts (0-1K followers), scale up by 2-5x for larger accounts
+          LinkedIn: Base estimate 100-500 for small accounts (0-500 connections), scale up by 2-5x for larger accounts
+          Consider content type and engagement potential
+          Format as: "X-Y (small accounts) to A-B (larger accounts)"
+        - A detailed image prompt for an AI image generator
       - Format the response as:
         TWITTER: [Twitter post]
         IMAGE_PROMPT_TWITTER: [Image prompt for Twitter]
         BEST_TIME_TWITTER: [Best time to post on Twitter]
-        EXPECTED_REACH_TWITTER: [Estimated reach]
+        EXPECTED_REACH_TWITTER: [Estimated reach with small to large account ranges]
         LINKEDIN: [LinkedIn post]
         IMAGE_PROMPT_LINKEDIN: [Image prompt for LinkedIn]
         BEST_TIME_LINKEDIN: [Best time to post on LinkedIn]
-        EXPECTED_REACH_LINKEDIN: [Estimated reach]`;
+        EXPECTED_REACH_LINKEDIN: [Estimated reach with small to large account ranges]`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
@@ -209,7 +209,7 @@ const Index = () => {
             }
           ],
           generationConfig: {
-            temperature: 0.7,
+            temperature: 0.8, // Increased temperature for more natural content
             topK: 40,
             topP: 0.95,
             maxOutputTokens: 1024,
@@ -309,124 +309,6 @@ const Index = () => {
     }
   };
 
-  const humanizeContent = async () => {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-    if (!generatedContent) {
-      toast({
-        title: "No Content",
-        description: "Please generate content first before humanizing.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsHumanizing(true);
-    console.log("Humanizing content:", generatedContent);
-
-    try {
-      const prompt = `Make these social media posts more natural and conversational while keeping the same message. Return ONLY the improved versions, no explanations or formatting:
-
-        TWITTER: ${generatedContent.twitter}
-        LINKEDIN: ${generatedContent.linkedin}
-        
-        Requirements:
-        - Return ONLY the posts in the same format
-        - Keep all emojis and hashtags
-        - No explanations or tips
-        - No special formatting
-        - Format the response as:
-          TWITTER: [Twitter post]
-          LINKEDIN: [LinkedIn post]`;
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt
-                }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1024,
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'Failed to humanize content');
-      }
-
-      const data = await response.json();
-      const content = data.candidates[0].content.parts[0].text;
-      
-      // Split the content into Twitter and LinkedIn versions
-      const twitterMatch = content.match(/TWITTER:([\s\S]*?)(?=LINKEDIN:|$)/);
-      const linkedinMatch = content.match(/LINKEDIN:([\s\S]*?)$/);
-      
-      const twitterContent = twitterMatch ? twitterMatch[1].trim() : '';
-      const linkedinContent = linkedinMatch ? linkedinMatch[1].trim() : '';
-      
-      setGeneratedContent({
-        twitter: twitterContent,
-        linkedin: linkedinContent,
-        bestTimeTwitter: '',
-        expectedLikesTwitter: '',
-        expectedReachTwitter: '',
-        bestTimeLinkedin: '',
-        expectedLikesLinkedin: '',
-        expectedReachLinkedin: '',
-        imageTwitter: '',
-        imageLinkedin: '',
-        svgTwitter: '',
-        svgLinkedin: '',
-        imagePromptTwitter: '',
-        imagePromptLinkedin: '',
-      });
-      
-      toast({
-        title: "Content Humanized!",
-        description: "Your posts have been made more natural and engaging.",
-      });
-    } catch (error) {
-      console.error('Error humanizing content:', error);
-      setGeneratedContent({
-        twitter: '',
-        linkedin: '',
-        bestTimeTwitter: '',
-        expectedLikesTwitter: '',
-        expectedReachTwitter: '',
-        bestTimeLinkedin: '',
-        expectedLikesLinkedin: '',
-        expectedReachLinkedin: '',
-        imageTwitter: '',
-        imageLinkedin: '',
-        svgTwitter: '',
-        svgLinkedin: '',
-        imagePromptTwitter: '',
-        imagePromptLinkedin: '',
-      });
-      toast({
-        title: "Humanization Failed",
-        description: "Failed to humanize content. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsHumanizing(false);
-    }
-  };
-
   const handlePost = async (platform: 'twitter' | 'linkedin', account: 'aniket' | 'neuralArc', isDialog: boolean = false) => {
     try {
       const content = isDialog 
@@ -445,21 +327,42 @@ const Index = () => {
       // Clean the content before posting
       const cleanContent = content.replace(/\*\*/g, '').replace(/\*/g, '');
 
+      // Copy content to clipboard
+      await navigator.clipboard.writeText(cleanContent);
+
+      // Open the respective social media platform in a new window
       if (platform === 'twitter') {
-        await postToTwitter(cleanContent, account);
+        window.open('https://twitter.com/compose/tweet', '_blank');
       } else {
-        await postToLinkedIn(cleanContent, account);
+        window.open('https://www.linkedin.com/post/new', '_blank');
       }
 
       toast({
-        title: "Success",
-        description: `Posted to ${platform === 'twitter' ? 'Twitter' : 'LinkedIn'} successfully!`,
+        title: "Content Copied!",
+        description: `Content has been copied to clipboard. Please paste (Ctrl+V) in the ${platform === 'twitter' ? 'Twitter' : 'LinkedIn'} window that opened.`,
+        duration: 5000,
       });
+
+      // Optional: Try to post directly if the API is available
+      try {
+        if (platform === 'twitter') {
+          await postToTwitter(cleanContent, account);
+        } else {
+          await postToLinkedIn(cleanContent, account);
+        }
+        toast({
+          title: "Success",
+          description: `Posted to ${platform === 'twitter' ? 'Twitter' : 'LinkedIn'} successfully!`,
+        });
+      } catch (apiError) {
+        console.log('API posting failed, user can paste manually');
+      }
+
     } catch (error) {
-      console.error('Error posting:', error);
+      console.error('Error:', error);
       toast({
         title: "Error",
-        description: "Failed to post content. Please try again.",
+        description: "Failed to copy content. Please try again.",
         variant: "destructive",
       });
     }
@@ -486,23 +389,28 @@ const Index = () => {
         LinkedIn: ${card.linkedinPrompt}
         
         Requirements:
-        - Create TWO versions:
-          1. Twitter version (max 280 characters, concise, no emojis)
-          2. LinkedIn version (detailed, at least 1000 characters, up to 3000 characters, no emojis, in-depth, professional, and comprehensive)
+        - Create TWO versions that are natural, conversational, and human-like:
+          1. Twitter version (max 280 characters, concise, engaging, and authentic)
+          2. LinkedIn version (detailed, at least 1000 characters, up to 3000 characters, professional but conversational)
+        - Make the content feel natural and human-written
         - Add 3-5 relevant hashtags to both versions
         - For each version, also provide:
           - Best time to post (for maximum engagement, in IST - Indian Standard Time, UTC+5:30)
-          - Expected reach (a rough estimate)
+          - Expected reach (provide realistic estimates for small following accounts):
+            Twitter: Base estimate 50-200 for small accounts (0-1K followers), scale up by 2-5x for larger accounts
+            LinkedIn: Base estimate 100-500 for small accounts (0-500 connections), scale up by 2-5x for larger accounts
+            Consider content type and engagement potential
+            Format as: "X-Y (small accounts) to A-B (larger accounts)"
           - A detailed image prompt for an AI image generator
         - Format the response as:
           TWITTER: [Twitter post]
           IMAGE_PROMPT_TWITTER: [Image prompt for Twitter]
           BEST_TIME_TWITTER: [Best time to post on Twitter]
-          EXPECTED_REACH_TWITTER: [Estimated reach]
+          EXPECTED_REACH_TWITTER: [Estimated reach with small to large account ranges]
           LINKEDIN: [LinkedIn post]
           IMAGE_PROMPT_LINKEDIN: [Image prompt for LinkedIn]
           BEST_TIME_LINKEDIN: [Best time to post on LinkedIn]
-          EXPECTED_REACH_LINKEDIN: [Estimated reach]`;
+          EXPECTED_REACH_LINKEDIN: [Estimated reach with small to large account ranges]`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
@@ -535,15 +443,26 @@ const Index = () => {
       const bestTimeLinkedinMatch = content.match(/BEST_TIME_LINKEDIN:([\s\S]*?)(?=EXPECTED_REACH_LINKEDIN:|$)/);
       const expectedReachLinkedinMatch = content.match(/EXPECTED_REACH_LINKEDIN:([\s\S]*?)$/);
 
+      // Update the trending card's estimated reach based on the generated content
+      const twitterReach = expectedReachTwitterMatch ? expectedReachTwitterMatch[1].trim() : '';
+      const linkedinReach = expectedReachLinkedinMatch ? expectedReachLinkedinMatch[1].trim() : '';
+      
+      // Update the card's estimated reach with the new values
+      const updatedCard = {
+        ...card,
+        estimatedReach: `${twitterReach.split('(')[0].trim()} (Twitter) / ${linkedinReach.split('(')[0].trim()} (LinkedIn)`
+      };
+
+      setSelectedCard(updatedCard);
       setGeneratedDialogContent({
         twitter: twitterMatch ? twitterMatch[1].trim() : '',
         linkedin: linkedinMatch ? linkedinMatch[1].trim() : '',
         bestTimeTwitter: bestTimeTwitterMatch ? bestTimeTwitterMatch[1].trim() : '',
         expectedLikesTwitter: '',
-        expectedReachTwitter: expectedReachTwitterMatch ? expectedReachTwitterMatch[1].trim() : '',
+        expectedReachTwitter: twitterReach,
         bestTimeLinkedin: bestTimeLinkedinMatch ? bestTimeLinkedinMatch[1].trim() : '',
         expectedLikesLinkedin: '',
-        expectedReachLinkedin: expectedReachLinkedinMatch ? expectedReachLinkedinMatch[1].trim() : '',
+        expectedReachLinkedin: linkedinReach,
         imageTwitter: '',
         imageLinkedin: '',
         svgTwitter: '',
@@ -911,17 +830,6 @@ const Index = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="audience">Target Audience</Label>
-                <Input
-                  id="audience"
-                  placeholder="Who is your target audience?"
-                  value={formData.audience}
-                  onChange={(e) => handleInputChange('audience', e.target.value)}
-                  className="border-2 border-gray-200 focus:border-blue-500 transition-colors"
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="keyPoints">Key Points</Label>
                 <Textarea
                   id="keyPoints"
@@ -1045,31 +953,22 @@ const Index = () => {
 
                   <div className="flex gap-3">
                     <Button 
-                      onClick={humanizeContent}
-                      disabled={isHumanizing}
-                      variant="outline"
-                      className="flex-1 border-2 border-purple-200 hover:bg-purple-50 transition-all duration-200"
-                    >
-                      {isHumanizing ? (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                          Humanizing...
-                        </>
-                      ) : (
-                        <>
-                          <Wand2 className="mr-2 h-4 w-4" />
-                          Humanize This
-                        </>
-                      )}
-                    </Button>
-                    
-                    <Button 
                       onClick={generateContent}
                       disabled={isGenerating}
                       variant="outline"
                       className="border-2 border-blue-200 hover:bg-blue-50 transition-all duration-200"
                     >
-                      <RefreshCw className="h-4 w-4" />
+                      {isGenerating ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-4 w-4" />
+                          Regenerate
+                        </>
+                      )}
                     </Button>
                   </div>
 
