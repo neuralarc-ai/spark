@@ -69,7 +69,7 @@ async function generateImage(prompt: string, apiKey: string): Promise<{ image: s
             {
               role: "user",
               parts: [
-                { text: prompt }
+                { text: `Generate an image for: ${prompt}. Use only these colors : #161616, #1E342F, #2B2521, #3987BE, #495663, #97A487, #A8B0B8, #A9A9A9, #B7A694, #B7BEAE, #C6AEA3, #CFD2D4, #CFD4C9, #D0C3B5, #D48EA3, #E3E2DF, #F8F7F3.` }
               ]
             }
           ],
@@ -1194,6 +1194,19 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       {selectedPost.imageCaption && (
                         <span className="block mt-2 text-xs text-gray-700 italic text-center">{selectedPost.imageCaption}</span>
                       )}
+                      <button
+                        className="mt-2 px-4 py-1 bg-black text-white rounded hover:bg-gray-800 text-xs"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = selectedPost.imageUrl!;
+                          link.download = 'generated-image.jpg';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                      >
+                        Download Image (JPG)
+                      </button>
                     </div>
                   )}
                 </div>
