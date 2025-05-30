@@ -278,7 +278,7 @@ const Index = () => {
       - For each version, also provide:
         - Best time to post (for maximum engagement, in IST - Indian Standard Time, UTC+5:30)
         - Expected reach (a rough estimate)
-        - A detailed image prompt for an AI image generator, using only these colors: #161616, #1E342F, #2B2521, #3987BE, #495663, #97A487, #A8B0B8, #A9A9A9, #B7A694, #B7BEAE, #C6AEA3, #CFD2D4, #CFD4C9, #D0C3B5, #D48EA3, #E3E2DF, #F8F7F3. The image should be visually appealing, relevant to the post, and suitable for direct posting on LinkedIn or Twitter.
+        - A detailed image prompt for an AI image generator. The image should be visually appealing, relevant to the post, and suitable for direct posting on LinkedIn or Twitter.
       - Make both versions engaging and authentic
       - No bullet points, asterisks, or special formatting
       - No explanations or tips
