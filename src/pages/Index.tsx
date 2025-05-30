@@ -1191,9 +1191,6 @@ Format the response as a JSON array of objects with these keys: platform, title,
                   {selectedPost.imageUrl && (
                     <div className="flex flex-col items-center mt-2 mb-4">
                       <img src={selectedPost.imageUrl} alt="Generated for this post" className="rounded-lg max-h-40 object-contain border border-gray-200" />
-                      {selectedPost.imageCaption && (
-                        <span className="block mt-2 text-xs text-gray-700 italic text-center">{selectedPost.imageCaption}</span>
-                      )}
                       <button
                         className="mt-2 px-4 py-1 bg-black text-white rounded hover:bg-gray-800 text-xs"
                         onClick={() => {
