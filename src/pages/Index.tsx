@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Sparkles, RefreshCw, Twitter, Linkedin, Wand2, SettingsIcon, Clock, Heart, Users } from "lucide-react";
+import { Sparkles, RefreshCw, Twitter, Linkedin, Wand2, SettingsIcon, Clock, Heart, Users, Search, ArrowUpRight, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { initiateTwitterAuth, initiateLinkedInAuth, postToLinkedIn, postToTwitter, testLinkedInToken } from '@/lib/social-service';
@@ -29,6 +28,28 @@ interface GeneratedContent {
   imagePromptLinkedin: string;
   imageUrlTwitter?: string;
   imageUrlLinkedin?: string;
+}
+
+interface InterestedContact {
+  name: string;
+  subtitle: string;
+  match: number;
+}
+
+interface GeneratedPost {
+  platform: 'LinkedIn' | 'Twitter';
+  score: number;
+  title: string;
+  content: string;
+  reach: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  hashtags: string[];
+  engagementPotential: number;
+  bestTime: string;
+  interestedContacts: InterestedContact[];
+  created: string;
 }
 
 // Helper function to call Google Image API
@@ -68,63 +89,21 @@ async function generateImage(prompt: string, apiKey: string): Promise<{ image: s
   }
 }
 
-interface TrendingCard {
-  title: string;
-  bestTime: string;
-  estimatedReach: string;
-  category: string;
-  twitterPrompt: string;
-  linkedinPrompt: string;
-}
-
-const trendingCards: TrendingCard[] = [
-  {
-    title: "AI & Tech Trends",
-    bestTime: "10:00 AM - 2:00 PM IST",
-    estimatedReach: "5K-15K",
-    category: "High Engagement",
-    twitterPrompt: "Create a concise tweet about the latest AI and tech trends, focusing on practical applications and future implications. Include relevant hashtags.",
-    linkedinPrompt: "Write a detailed LinkedIn post about emerging AI and tech trends, including industry insights, practical applications, and future implications. Make it professional and informative."
-  },
-  {
-    title: "Industry Insights",
-    bestTime: "9:00 AM - 11:00 AM IST",
-    estimatedReach: "3K-10K",
-    category: "Professional",
-    twitterPrompt: "Create a concise tweet sharing valuable industry insights and professional observations. Include relevant hashtags.",
-    linkedinPrompt: "Write a detailed LinkedIn post sharing in-depth industry insights, market analysis, and professional observations. Make it comprehensive and thought-provoking."
-  },
-  {
-    title: "Success Stories",
-    bestTime: "1:00 PM - 3:00 PM IST",
-    estimatedReach: "4K-12K",
-    category: "Inspirational",
-    twitterPrompt: "Create an inspiring tweet about a success story or achievement. Make it motivational and include relevant hashtags.",
-    linkedinPrompt: "Write a detailed LinkedIn post sharing an inspiring success story, including challenges overcome and lessons learned. Make it motivational and professional."
-  },
-  {
-    title: "How-to Guides",
-    bestTime: "11:00 AM - 1:00 PM IST",
-    estimatedReach: "6K-18K",
-    category: "Educational",
-    twitterPrompt: "Create a concise tweet sharing a practical how-to tip or guide. Make it actionable and include relevant hashtags.",
-    linkedinPrompt: "Write a detailed LinkedIn post providing a comprehensive how-to guide or tutorial. Include step-by-step instructions and practical tips."
-  },
-  {
-    title: "Industry News",
-    bestTime: "8:00 AM - 10:00 AM IST",
-    estimatedReach: "7K-20K",
-    category: "Breaking News",
-    twitterPrompt: "Create a concise tweet about breaking industry news. Make it informative and include relevant hashtags.",
-    linkedinPrompt: "Write a detailed LinkedIn post about breaking industry news, including analysis and implications. Make it professional and informative."
-  }
-];
+// Add TrendingUpIcon SVG component
+const TrendingUpIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon icon-tabler icons-tabler-outline icon-tabler-trending-up">
+    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+    <path d="M3 17l6 -6l4 4l8 -8" />
+    <path d="M14 7l7 0l0 7" />
+  </svg>
+);
 
 const Index = () => {
   const [formData, setFormData] = useState({
     topic: '',
     tone: '',
     type: '',
+    audience: '',
     keyPoints: ''
   });
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
@@ -132,10 +111,22 @@ const Index = () => {
   const [isHumanizing, setIsHumanizing] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState<{twitter: boolean, linkedin: boolean}>({twitter: false, linkedin: false});
   const { toast } = useToast();
-  const [selectedCard, setSelectedCard] = useState<TrendingCard | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [generatedDialogContent, setGeneratedDialogContent] = useState<GeneratedContent | null>(null);
-  const [isGeneratingDialog, setIsGeneratingDialog] = useState(false);
+  const trendingTopics = [
+    "AI and Machine Learning",
+    "Remote Work Strategies",
+    "Digital Transformation",
+    "Cybersecurity Trends",
+    "Sustainable Business",
+    "Customer Experience",
+    "Data Analytics",
+    "Cloud Computing"
+  ];
+  const [searchValue, setSearchValue] = useState("");
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [generatedPosts, setGeneratedPosts] = useState<GeneratedPost[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<GeneratedPost | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -167,31 +158,30 @@ const Index = () => {
 
     try {
       const prompt = `Create two versions of a social media post about ${formData.topic} with a ${formData.tone} tone. 
+      Target audience: ${formData.audience || 'General audience'}
       Key points to include: ${formData.keyPoints || 'None specified'}
       
       Requirements:
-      - Create TWO versions that are natural, conversational, and human-like:
-        1. Twitter version (max 280 characters, concise, engaging, and authentic)
-        2. LinkedIn version (detailed, at least 1000 characters, up to 3000 characters, professional but conversational)
-      - Make the content feel natural and human-written
+      - Create TWO versions:
+        1. Twitter version (max 280 characters, concise, no emojis)
+        2. LinkedIn version (detailed, at least 1000 characters, up to 3000 characters, no emojis, in-depth, professional, and comprehensive; use multiple paragraphs, include an introduction, main points, and a conclusion)
       - Add 3-5 relevant hashtags to both versions
       - For each version, also provide:
         - Best time to post (for maximum engagement, in IST - Indian Standard Time, UTC+5:30)
-        - Expected reach (provide realistic estimates for small following accounts):
-          Twitter: Base estimate 50-200 for small accounts (0-1K followers), scale up by 2-5x for larger accounts
-          LinkedIn: Base estimate 100-500 for small accounts (0-500 connections), scale up by 2-5x for larger accounts
-          Consider content type and engagement potential
-          Format as: "X-Y (small accounts) to A-B (larger accounts)"
-        - A detailed image prompt for an AI image generator
+        - Expected reach (a rough estimate)
+        - A detailed image prompt for an AI image generator, using only these colors: #161616, #1E342F, #2B2521, #3987BE, #495663, #97A487, #A8B0B8, #A9A9A9, #B7A694, #B7BEAE, #C6AEA3, #CFD2D4, #CFD4C9, #D0C3B5, #D48EA3, #E3E2DF, #F8F7F3. The image should be visually appealing, relevant to the post, and suitable for direct posting on LinkedIn or Twitter.
+      - Make both versions engaging and authentic
+      - No bullet points, asterisks, or special formatting
+      - No explanations or tips
       - Format the response as:
         TWITTER: [Twitter post]
         IMAGE_PROMPT_TWITTER: [Image prompt for Twitter]
         BEST_TIME_TWITTER: [Best time to post on Twitter]
-        EXPECTED_REACH_TWITTER: [Estimated reach with small to large account ranges]
+        EXPECTED_REACH_TWITTER: [Estimated reach]
         LINKEDIN: [LinkedIn post]
         IMAGE_PROMPT_LINKEDIN: [Image prompt for LinkedIn]
         BEST_TIME_LINKEDIN: [Best time to post on LinkedIn]
-        EXPECTED_REACH_LINKEDIN: [Estimated reach with small to large account ranges]`;
+        EXPECTED_REACH_LINKEDIN: [Estimated reach]`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
@@ -209,7 +199,7 @@ const Index = () => {
             }
           ],
           generationConfig: {
-            temperature: 0.8, // Increased temperature for more natural content
+            temperature: 0.7,
             topK: 40,
             topP: 0.95,
             maxOutputTokens: 1024,
@@ -309,114 +299,51 @@ const Index = () => {
     }
   };
 
-  const handlePost = async (platform: 'twitter' | 'linkedin', account: 'aniket' | 'neuralArc', isDialog: boolean = false) => {
-    try {
-      const content = isDialog 
-        ? (platform === 'twitter' ? generatedDialogContent?.twitter : generatedDialogContent?.linkedin)
-        : (platform === 'twitter' ? generatedContent?.twitter : generatedContent?.linkedin);
+  const humanizeContent = async () => {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-      if (!content) {
-        toast({
-          title: "No Content",
-          description: "Please generate content first before posting.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Clean the content before posting
-      const cleanContent = content.replace(/\*\*/g, '').replace(/\*/g, '');
-
-      // Copy content to clipboard
-      await navigator.clipboard.writeText(cleanContent);
-
-      // Open the respective social media platform in a new window
-      if (platform === 'twitter') {
-        window.open('https://twitter.com/compose/tweet', '_blank');
-      } else {
-        window.open('https://www.linkedin.com/post/new', '_blank');
-      }
-
+    if (!generatedContent) {
       toast({
-        title: "Content Copied!",
-        description: `Content has been copied to clipboard. Please paste (Ctrl+V) in the ${platform === 'twitter' ? 'Twitter' : 'LinkedIn'} window that opened.`,
-        duration: 5000,
-      });
-
-      // Optional: Try to post directly if the API is available
-      try {
-        if (platform === 'twitter') {
-          await postToTwitter(cleanContent, account);
-        } else {
-          await postToLinkedIn(cleanContent, account);
-        }
-        toast({
-          title: "Success",
-          description: `Posted to ${platform === 'twitter' ? 'Twitter' : 'LinkedIn'} successfully!`,
-        });
-      } catch (apiError) {
-        console.log('API posting failed, user can paste manually');
-      }
-
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to copy content. Please try again.",
+        title: "No Content",
+        description: "Please generate content first before humanizing.",
         variant: "destructive",
       });
+      return;
     }
-  };
 
-  const handleCardClick = async (card: TrendingCard) => {
-    setSelectedCard(card);
-    setIsDialogOpen(true);
-    setIsGeneratingDialog(true);
+    setIsHumanizing(true);
+    console.log("Humanizing content:", generatedContent);
 
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      if (!apiKey) {
-        toast({
-          title: "API Key Missing",
-          description: "Please add your Google Gemini API key to the .env.local file.",
-          variant: "destructive",
-        });
-        return;
-      }
+      const prompt = `Make these social media posts more natural and conversational while keeping the same message. Return ONLY the improved versions, no explanations or formatting:
 
-      const prompt = `Create two versions of a social media post based on this prompt:
-        Twitter: ${card.twitterPrompt}
-        LinkedIn: ${card.linkedinPrompt}
+        TWITTER: ${generatedContent.twitter}
+        LINKEDIN: ${generatedContent.linkedin}
         
         Requirements:
-        - Create TWO versions that are natural, conversational, and human-like:
-          1. Twitter version (max 280 characters, concise, engaging, and authentic)
-          2. LinkedIn version (detailed, at least 1000 characters, up to 3000 characters, professional but conversational)
-        - Make the content feel natural and human-written
-        - Add 3-5 relevant hashtags to both versions
-        - For each version, also provide:
-          - Best time to post (for maximum engagement, in IST - Indian Standard Time, UTC+5:30)
-          - Expected reach (provide realistic estimates for small following accounts):
-            Twitter: Base estimate 50-200 for small accounts (0-1K followers), scale up by 2-5x for larger accounts
-            LinkedIn: Base estimate 100-500 for small accounts (0-500 connections), scale up by 2-5x for larger accounts
-            Consider content type and engagement potential
-            Format as: "X-Y (small accounts) to A-B (larger accounts)"
-          - A detailed image prompt for an AI image generator
+        - Return ONLY the posts in the same format
+        - Keep all emojis and hashtags
+        - No explanations or tips
+        - No special formatting
         - Format the response as:
           TWITTER: [Twitter post]
-          IMAGE_PROMPT_TWITTER: [Image prompt for Twitter]
-          BEST_TIME_TWITTER: [Best time to post on Twitter]
-          EXPECTED_REACH_TWITTER: [Estimated reach with small to large account ranges]
-          LINKEDIN: [LinkedIn post]
-          IMAGE_PROMPT_LINKEDIN: [Image prompt for LinkedIn]
-          BEST_TIME_LINKEDIN: [Best time to post on LinkedIn]
-          EXPECTED_REACH_LINKEDIN: [Estimated reach with small to large account ranges]`;
+          LINKEDIN: [LinkedIn post]`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ],
           generationConfig: {
             temperature: 0.7,
             topK: 40,
@@ -427,80 +354,159 @@ const Index = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate content');
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to humanize content');
       }
 
       const data = await response.json();
       const content = data.candidates[0].content.parts[0].text;
       
-      // Parse the content similar to the main generateContent function
-      const twitterMatch = content.match(/TWITTER:([\s\S]*?)(?=IMAGE_PROMPT_TWITTER:|$)/);
-      const imagePromptTwitterMatch = content.match(/IMAGE_PROMPT_TWITTER:([\s\S]*?)(?=BEST_TIME_TWITTER:|$)/);
-      const bestTimeTwitterMatch = content.match(/BEST_TIME_TWITTER:([\s\S]*?)(?=EXPECTED_REACH_TWITTER:|$)/);
-      const expectedReachTwitterMatch = content.match(/EXPECTED_REACH_TWITTER:([\s\S]*?)(?=LINKEDIN:|$)/);
-      const linkedinMatch = content.match(/LINKEDIN:([\s\S]*?)(?=IMAGE_PROMPT_LINKEDIN:|$)/);
-      const imagePromptLinkedinMatch = content.match(/IMAGE_PROMPT_LINKEDIN:([\s\S]*?)(?=BEST_TIME_LINKEDIN:|$)/);
-      const bestTimeLinkedinMatch = content.match(/BEST_TIME_LINKEDIN:([\s\S]*?)(?=EXPECTED_REACH_LINKEDIN:|$)/);
-      const expectedReachLinkedinMatch = content.match(/EXPECTED_REACH_LINKEDIN:([\s\S]*?)$/);
-
-      // Update the trending card's estimated reach based on the generated content
-      const twitterReach = expectedReachTwitterMatch ? expectedReachTwitterMatch[1].trim() : '';
-      const linkedinReach = expectedReachLinkedinMatch ? expectedReachLinkedinMatch[1].trim() : '';
+      // Split the content into Twitter and LinkedIn versions
+      const twitterMatch = content.match(/TWITTER:([\s\S]*?)(?=LINKEDIN:|$)/);
+      const linkedinMatch = content.match(/LINKEDIN:([\s\S]*?)$/);
       
-      // Update the card's estimated reach with the new values
-      const updatedCard = {
-        ...card,
-        estimatedReach: `${twitterReach.split('(')[0].trim()} (Twitter) / ${linkedinReach.split('(')[0].trim()} (LinkedIn)`
-      };
-
-      setSelectedCard(updatedCard);
-      setGeneratedDialogContent({
-        twitter: twitterMatch ? twitterMatch[1].trim() : '',
-        linkedin: linkedinMatch ? linkedinMatch[1].trim() : '',
-        bestTimeTwitter: bestTimeTwitterMatch ? bestTimeTwitterMatch[1].trim() : '',
+      const twitterContent = twitterMatch ? twitterMatch[1].trim() : '';
+      const linkedinContent = linkedinMatch ? linkedinMatch[1].trim() : '';
+      
+      setGeneratedContent({
+        twitter: twitterContent,
+        linkedin: linkedinContent,
+        bestTimeTwitter: '',
         expectedLikesTwitter: '',
-        expectedReachTwitter: twitterReach,
-        bestTimeLinkedin: bestTimeLinkedinMatch ? bestTimeLinkedinMatch[1].trim() : '',
+        expectedReachTwitter: '',
+        bestTimeLinkedin: '',
         expectedLikesLinkedin: '',
-        expectedReachLinkedin: linkedinReach,
+        expectedReachLinkedin: '',
         imageTwitter: '',
         imageLinkedin: '',
         svgTwitter: '',
         svgLinkedin: '',
-        imagePromptTwitter: imagePromptTwitterMatch ? imagePromptTwitterMatch[1].trim() : '',
-        imagePromptLinkedin: imagePromptLinkedinMatch ? imagePromptLinkedinMatch[1].trim() : '',
+        imagePromptTwitter: '',
+        imagePromptLinkedin: '',
       });
-
-      // Generate images
-      const [twitterResult, linkedinResult] = await Promise.all([
-        generateImage(imagePromptTwitterMatch ? imagePromptTwitterMatch[1].trim() : '', apiKey),
-        generateImage(imagePromptLinkedinMatch ? imagePromptLinkedinMatch[1].trim() : '', apiKey),
-      ]);
-
-      setGeneratedDialogContent(prev => prev && {
-        ...prev,
-        imageUrlTwitter: twitterResult.image || '',
-        imageUrlLinkedin: linkedinResult.image || '',
-        imageTwitter: twitterResult.caption,
-        imageLinkedin: linkedinResult.caption,
-      });
-
-    } catch (error) {
-      console.error('Error generating content:', error);
+      
       toast({
-        title: "Generation Failed",
-        description: "Failed to generate content. Please try again.",
+        title: "Content Humanized!",
+        description: "Your posts have been made more natural and engaging.",
+      });
+    } catch (error) {
+      console.error('Error humanizing content:', error);
+      setGeneratedContent({
+        twitter: '',
+        linkedin: '',
+        bestTimeTwitter: '',
+        expectedLikesTwitter: '',
+        expectedReachTwitter: '',
+        bestTimeLinkedin: '',
+        expectedLikesLinkedin: '',
+        expectedReachLinkedin: '',
+        imageTwitter: '',
+        imageLinkedin: '',
+        svgTwitter: '',
+        svgLinkedin: '',
+        imagePromptTwitter: '',
+        imagePromptLinkedin: '',
+      });
+      toast({
+        title: "Humanization Failed",
+        description: "Failed to humanize content. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsGeneratingDialog(false);
+      setIsHumanizing(false);
     }
+  };
+
+  const handlePost = async (platform: 'twitter' | 'linkedin', account: 'aniket' | 'neuralArc') => {
+    try {
+      if (!generatedContent) {
+        toast({
+          title: "No Content",
+          description: "Please generate content first before posting.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const content = platform === 'twitter' ? generatedContent.twitter : generatedContent.linkedin;
+
+      if (platform === 'twitter') {
+        await postToTwitter(content, account);
+      } else {
+        await postToLinkedIn(content, account);
+      }
+
+      toast({
+        title: "Success",
+        description: `Posted to ${platform === 'twitter' ? 'Twitter' : 'LinkedIn'} successfully!`,
+      });
+    } catch (error) {
+      console.error('Error posting:', error);
+      toast({
+        title: "Error",
+        description: "Failed to post content. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handler for Search button
+  const handleSearch = async () => {
+    if (!searchValue.trim()) return;
+    setIsSearching(true);
+    setGeneratedPosts([]);
+    try {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const prompt = `Generate 4 social media posts (2 for LinkedIn, 2 for Twitter) for the topic: "${searchValue}". For each post, provide the following fields:
+- platform: (LinkedIn or Twitter)
+- title: (catchy, max 60 chars)
+- content: (for LinkedIn: detailed, multi-paragraph, professional, 800-1500 characters, with intro, main points, and conclusion; for Twitter: concise, max 280 characters)
+- reach: (e.g. 3K - 11K)
+- likes: (number)
+- comments: (number)
+- shares: (number)
+- hashtags: (array of 2-4 relevant hashtags)
+- score: (as a percentage, e.g. 94)
+- engagementPotential: (as a percentage, e.g. 94)
+- bestTime: (best time to post, e.g. Tuesday, 9:00 AM - 11:00 AM)
+- interestedContacts: (array of 3 objects, each with name, subtitle, and match percentage)
+- created: (date, format: DD/MM/YYYY)
+Format the response as a JSON array of objects with these keys: platform, title, content, reach, likes, comments, shares, hashtags, score, engagementPotential, bestTime, interestedContacts, created.`;
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 2048 }
+        })
+      });
+      if (!response.ok) throw new Error('Failed to generate posts');
+      const data = await response.json();
+      const text = data.candidates[0].content.parts[0].text;
+      // Try to extract JSON from the response
+      const jsonMatch = text.match(/\[.*\]/s);
+      const posts: GeneratedPost[] = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+      setGeneratedPosts(posts);
+    } catch (err) {
+      setGeneratedPosts([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleCardClick = (post: GeneratedPost) => {
+    setSelectedPost(post);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedPost(null);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
+      <div className="max-w-[1600px] w-full mx-auto px-2 sm:px-4">
         <div className="text-center mt-2 mt-3">
           <div className="flex items-center justify-center mb-4">
             <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent">
@@ -511,563 +517,444 @@ const Index = () => {
             AI-powered social media content generator
           </p>
         </div>
+        {/* Trending Topics Section */}
+        <div className="mb-8 bg-white rounded-2xl shadow p-6 border border-gray-100">
+          <div className="mb-4 flex items-center gap-2">
+            <Search className="w-5 h-5 text-gray-700" />
+            <span className="text-xl font-semibold text-gray-900">Industry Trend Discovery</span>
+          </div>
+          <div className="flex gap-2 mb-2">
+            <Input
+              value={searchValue}
+              onChange={e => setSearchValue(e.target.value)}
+              placeholder="What are you looking for?"
+              className="flex-1 rounded-lg border border-gray-200 focus:border-blue-500 px-4 py-2 text-base shadow-none"
+              style={{ minHeight: 44 }}
+            />
+            <Button
+              className="bg-black text-white rounded-lg px-6 text-base h-11"
+              style={{ minHeight: 44 }}
+              onClick={handleSearch}
+              disabled={isSearching}
+            >
+              {isSearching ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}Search
+            </Button>
+            <Button
+              variant="outline"
+              className="border-2 border-gray-200 rounded-lg px-6 text-base h-11"
+              style={{ minHeight: 44 }}
+            >
+              <ArrowUpRight className="w-4 h-4 mr-2" />Refresh
+            </Button>
+          </div>
+          <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2 mt-4">Trending Topics</div>
+          <div className="flex flex-wrap gap-3">
+            {trendingTopics.map(topic => (
+              <button
+                key={topic}
+                type="button"
+                onClick={() => { setSearchValue(topic); setSelectedTopic(topic); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full border text-base font-medium transition-colors
+                  ${selectedTopic === topic ? 'bg-black text-white border-black shadow' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'}
+                `}
+                style={{ minWidth: 0 }}
+              >
+                <TrendingUpIcon />
+                {topic}
+              </button>
+            ))}
+          </div>
+        </div>
 
-        {/* Trending Cards Section */}
-        <div className="mb-12">
-          <div className="max-w-7xl mx-auto px-4">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center tracking-tight">Trending Content Types</h2>
-            <p className="text-gray-500 text-center mb-8 text-sm">Click on any card to generate optimized content</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              {trendingCards.map((card, index) => (
-                <div 
-                  key={index}
-                  onClick={() => handleCardClick(card)}
-                  className="group cursor-pointer transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 h-[200px] overflow-hidden relative">
-                    {/* Hover Effect Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-black/0 via-black/0 to-black/0 group-hover:from-black/5 group-hover:via-black/5 group-hover:to-black/10 transition-all duration-300" />
-                    
-                    {/* Card Header */}
-                    <CardHeader className="pb-2 pt-3 px-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-[15px] font-bold text-gray-900 leading-tight">
-                          {card.title}
-                        </CardTitle>
-                        <div className="w-6 h-6 rounded-full bg-gray-100 group-hover:bg-gray-200 transition-colors duration-300 flex items-center justify-center">
-                          <svg 
-                            className="w-3.5 h-3.5 text-gray-600 transform group-hover:translate-x-0.5 transition-transform duration-300" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent className="p-4 space-y-3">
-                      {/* Best Time Section */}
-                      <div className="flex items-start gap-2.5">
-                        <div className="mt-0.5 p-1.5 rounded-md bg-gray-50 group-hover:bg-gray-100 transition-colors duration-300 border border-gray-100">
-                          <Clock className="w-3.5 h-3.5 text-gray-700" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Best time to post</p>
-                          <p className="text-[13px] font-medium text-gray-900 mt-0.5 truncate">{card.bestTime}</p>
-                        </div>
-                      </div>
-
-                      {/* Estimated Reach Section */}
-                      <div className="flex items-start gap-2.5">
-                        <div className="mt-0.5 p-1.5 rounded-md bg-gray-50 group-hover:bg-gray-100 transition-colors duration-300 border border-gray-100">
-                          <Users className="w-3.5 h-3.5 text-gray-700" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Estimated reach</p>
-                          <p className="text-[13px] font-medium text-gray-900 mt-0.5 truncate">{card.estimatedReach}</p>
-                        </div>
-                      </div>
-
-                      {/* Category Badge */}
-                      <div className="pt-1">
-                        <Badge 
-                          variant="secondary" 
-                          className={`w-full justify-center text-[11px] font-semibold py-1.5 border transition-all duration-300 ${
-                            card.category === 'High Engagement' ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800' :
-                            card.category === 'Professional' ? 'bg-gray-800 text-white border-gray-800 hover:bg-gray-700' :
-                            card.category === 'Inspirational' ? 'bg-gray-700 text-white border-gray-700 hover:bg-gray-600' :
-                            card.category === 'Educational' ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800' :
-                            'bg-gray-800 text-white border-gray-800 hover:bg-gray-700'
-                          }`}
-                        >
-                          {card.category}
-                        </Badge>
-                      </div>
-
-                      {/* Hover Indicator */}
-                      <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-                    </CardContent>
-                  </Card>
+        {/* Render generated posts as cards below trending section */}
+        {generatedPosts.length > 0 && (
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-2xl font-semibold text-black">Generated Posts for "{searchValue}"</span>
+              <span className="text-gray-500 text-sm">{generatedPosts.length} posts created</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {generatedPosts.map((post, idx) => (
+                <div key={idx} className="bg-white rounded-xl shadow border border-gray-100 p-6 flex flex-col gap-2 min-h-[220px] max-w-[370px] mx-auto cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick(post)}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${post.platform === 'LinkedIn' ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-900'}`}>{post.platform}</span>
+                    <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">{post.score}% Score</span>
+                  </div>
+                  <div className="font-bold text-base text-gray-900 mb-1">{post.title}</div>
+                  <div className="text-gray-700 text-sm mb-2 line-clamp-2">{post.content}</div>
+                  <div className="flex items-center gap-4 text-xs mb-2">
+                    <span className="flex items-center gap-1 text-blue-700 font-semibold"><span role="img" aria-label="reach">👁️</span>{post.reach}</span>
+                    <span className="flex items-center gap-1 text-red-500 font-semibold"><span role="img" aria-label="likes">❤️</span>{post.likes}</span>
+                    <span className="flex items-center gap-1 text-green-600 font-semibold"><span role="img" aria-label="comments">💬</span>{post.comments}</span>
+                  </div>
+                  <div className="text-xs text-gray-400 mt-auto">Created: {post.created}</div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Post Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="border-b pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <DialogTitle className="text-2xl font-bold text-gray-900">
-                    Create Posts for {selectedCard?.title}
-                  </DialogTitle>
-                  <DialogDescription className="text-gray-600 mt-2">
-                    Generated content for Twitter and LinkedIn. You can edit and post directly from here.
-                  </DialogDescription>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsDialogOpen(false)}
-                  className="hover:bg-gray-100 rounded-full"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="w-5 h-5"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </Button>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
+          {/* Input Form */}
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader className="bg-black text-white rounded-t-lg">
+              <CardTitle className="flex items-center gap-2">
+                Content Generator
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="topic">Topic *</Label>
+                <Input
+                  id="topic"
+                  placeholder="What do you want to post about?"
+                  value={formData.topic}
+                  onChange={(e) => handleInputChange('topic', e.target.value)}
+                  className="border-2 border-gray-200 focus:border-blue-500 transition-colors"
+                />
               </div>
-            </DialogHeader>
 
-            {isGeneratingDialog ? (
-              <div className="flex items-center justify-center py-12">
-                <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
-                <span className="ml-3 text-gray-600 text-lg">Generating content...</span>
+              <div className="space-y-2">
+                <Label htmlFor="tone">Tone *</Label>
+                <Select onValueChange={(value) => handleInputChange('tone', value)}>
+                  <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500">
+                    <SelectValue placeholder="Select tone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="professional">Professional</SelectItem>
+                    <SelectItem value="casual">Casual</SelectItem>
+                    <SelectItem value="enthusiastic">Enthusiastic</SelectItem>
+                    <SelectItem value="inspirational">Inspirational</SelectItem>
+                    <SelectItem value="humorous">Humorous</SelectItem>
+                    <SelectItem value="educational">Educational</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            ) : generatedDialogContent ? (
-              <div className="space-y-8 py-4">
-                {/* Twitter Card */}
-                <Card className="border-2 border-blue-200 bg-white/50 backdrop-blur-sm">
-                  <CardHeader className="pb-3 border-b border-blue-100">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                        <Twitter className="w-5 h-5 text-blue-400" />
-                        Twitter Version
-                      </CardTitle>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="bg-blue-50 text-blue-700">
-                          {generatedDialogContent.bestTimeTwitter.replace(/\*\*/g, '')}
-                        </Badge>
-                        <Badge variant="secondary" className="bg-green-50 text-green-700">
-                          {generatedDialogContent.expectedReachTwitter.replace(/\*\*/g, '')}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    {generatedDialogContent.imageUrlTwitter && (
-                      <div className="w-full flex flex-col items-center mb-6">
-                        <img 
-                          src={generatedDialogContent.imageUrlTwitter} 
-                          alt="Generated for Twitter" 
-                          className="rounded-lg max-h-48 object-contain shadow-md" 
-                        />
-                        {generatedDialogContent.imageTwitter && (
-                          <p className="text-sm text-gray-500 mt-2 italic">{generatedDialogContent.imageTwitter}</p>
-                        )}
-                      </div>
-                    )}
-                    <div className="space-y-4">
-                      <div className="relative">
-                        <Textarea
-                          value={generatedDialogContent.twitter.replace(/\*\*/g, '')}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value.length <= 280) {
-                              setGeneratedDialogContent(prev => prev ? {...prev, twitter: value} : null);
-                            }
-                          }}
-                          className={`min-h-[120px] text-base leading-relaxed resize-none border-2 transition-colors ${
-                            generatedDialogContent.twitter.length > 280 
-                              ? 'border-red-300 focus:border-red-400' 
-                              : 'border-blue-100 focus:border-blue-300'
-                          }`}
-                          placeholder="Your Twitter post will appear here..."
-                        />
-                        <div className={`absolute bottom-2 right-2 text-xs ${
-                          generatedDialogContent.twitter.length > 280 ? 'text-red-500' : 'text-gray-400'
-                        }`}>
-                          {generatedDialogContent.twitter.length}/280
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Users className="w-4 h-4" />
-                          <span>Est. reach: {generatedDialogContent.expectedReachTwitter.replace(/\*\*/g, '')}</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={() => {
-                              navigator.clipboard.writeText(generatedDialogContent.twitter.replace(/\*\*/g, ''));
-                              toast({
-                                title: "Copied!",
-                                description: "Twitter content copied to clipboard",
-                              });
-                            }}
-                            variant="outline"
-                            className="border-blue-200 hover:bg-blue-50"
-                          >
-                            Copy
-                          </Button>
-                          <Button 
-                            onClick={() => handlePost('twitter', 'aniket', true)}
-                            disabled={generatedDialogContent.twitter.length > 280}
-                            className="bg-blue-400 hover:bg-blue-500 text-white px-6 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <Twitter className="w-4 h-4 mr-2" />
-                            Post to Twitter
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
 
-                {/* LinkedIn Card */}
-                <Card className="border-2 border-blue-700 bg-white/50 backdrop-blur-sm">
-                  <CardHeader className="pb-3 border-b border-blue-100">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                        <Linkedin className="w-5 h-5 text-blue-700" />
-                        LinkedIn Version
-                      </CardTitle>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="bg-blue-50 text-blue-700">
-                          {generatedDialogContent.bestTimeLinkedin.replace(/\*\*/g, '')}
-                        </Badge>
-                        <Badge variant="secondary" className="bg-green-50 text-green-700">
-                          {generatedDialogContent.expectedReachLinkedin.replace(/\*\*/g, '')}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    {generatedDialogContent.imageUrlLinkedin && (
-                      <div className="w-full flex flex-col items-center mb-6">
-                        <img 
-                          src={generatedDialogContent.imageUrlLinkedin} 
-                          alt="Generated for LinkedIn" 
-                          className="rounded-lg max-h-48 object-contain shadow-md" 
-                        />
-                        {generatedDialogContent.imageLinkedin && (
-                          <p className="text-sm text-gray-500 mt-2 italic">{generatedDialogContent.imageLinkedin}</p>
-                        )}
-                      </div>
-                    )}
-                    <div className="space-y-4">
-                      <div className="relative">
-                        <Textarea
-                          value={generatedDialogContent.linkedin.replace(/\*\*/g, '').replace(/\*/g, '')}
-                          onChange={(e) => setGeneratedDialogContent(prev => prev ? {...prev, linkedin: e.target.value} : null)}
-                          className="min-h-[400px] text-base leading-relaxed resize-none border-2 border-blue-100 focus:border-blue-300 transition-colors"
-                          placeholder="Your LinkedIn post will appear here..."
-                        />
-                        <div className="absolute bottom-2 right-2 text-xs text-gray-400">
-                          {generatedDialogContent.linkedin.length} characters
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Users className="w-4 h-4" />
-                          <span>Est. reach: {generatedDialogContent.expectedReachLinkedin.replace(/\*\*/g, '')}</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={() => {
-                              navigator.clipboard.writeText(generatedDialogContent.linkedin.replace(/\*\*/g, '').replace(/\*/g, ''));
-                              toast({
-                                title: "Copied!",
-                                description: "LinkedIn content copied to clipboard",
-                              });
-                            }}
-                            variant="outline"
-                            className="border-blue-200 hover:bg-blue-50"
-                          >
-                            Copy
-                          </Button>
-                          <Button 
-                            onClick={() => handlePost('linkedin', 'aniket', true)}
-                            className="bg-blue-700 hover:bg-blue-800 text-white px-6"
-                          >
-                            <Linkedin className="w-4 h-4 mr-2" />
-                            Post to LinkedIn
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="space-y-2">
+                <Label htmlFor="type">Content Type</Label>
+                <Select onValueChange={(value) => handleInputChange('type', value)}>
+                  <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500">
+                    <SelectValue placeholder="Select content type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="announcement">Announcement</SelectItem>
+                    <SelectItem value="tip">Tip/Advice</SelectItem>
+                    <SelectItem value="question">Question</SelectItem>
+                    <SelectItem value="story">Personal Story</SelectItem>
+                    <SelectItem value="quote">Quote/Inspiration</SelectItem>
+                    <SelectItem value="news">Industry News</SelectItem>
+                    <SelectItem value="tutorial">Tutorial/How-to</SelectItem>
+                    <SelectItem value="case-study">Case Study</SelectItem>
+                    <SelectItem value="product-launch">Product Launch</SelectItem>
+                    <SelectItem value="event">Event/Promotion</SelectItem>
+                    <SelectItem value="industry-trend">Industry Trend</SelectItem>
+                    <SelectItem value="behind-scenes">Behind the Scenes</SelectItem>
+                    <SelectItem value="achievement">Achievement/Milestone</SelectItem>
+                    <SelectItem value="poll">Poll/Survey</SelectItem>
+                    <SelectItem value="infographic">Infographic/Stats</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            ) : null}
-          </DialogContent>
-        </Dialog>
 
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300">
-              <CardHeader className="pb-3 pt-4 px-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-                <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  Content Generator
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="topic">Topic *</Label>
-                  <Input
-                    id="topic"
-                    placeholder="What do you want to post about?"
-                    value={formData.topic}
-                    onChange={(e) => handleInputChange('topic', e.target.value)}
-                    className="border-2 border-gray-200 focus:border-blue-500 transition-colors"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="audience">Target Audience</Label>
+                <Input
+                  id="audience"
+                  placeholder="Who is your target audience?"
+                  value={formData.audience}
+                  onChange={(e) => handleInputChange('audience', e.target.value)}
+                  className="border-2 border-gray-200 focus:border-blue-500 transition-colors"
+                />
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="tone">Tone *</Label>
-                  <Select onValueChange={(value) => handleInputChange('tone', value)}>
-                    <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500">
-                      <SelectValue placeholder="Select tone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="professional">Professional</SelectItem>
-                      <SelectItem value="casual">Casual</SelectItem>
-                      <SelectItem value="enthusiastic">Enthusiastic</SelectItem>
-                      <SelectItem value="inspirational">Inspirational</SelectItem>
-                      <SelectItem value="humorous">Humorous</SelectItem>
-                      <SelectItem value="educational">Educational</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="keyPoints">Key Points</Label>
+                <Textarea
+                  id="keyPoints"
+                  placeholder="Any specific points you want to include?"
+                  value={formData.keyPoints}
+                  onChange={(e) => handleInputChange('keyPoints', e.target.value)}
+                  className="border-2 border-gray-200 focus:border-blue-500 transition-colors min-h-20"
+                />
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="type">Content Type</Label>
-                  <Select onValueChange={(value) => handleInputChange('type', value)}>
-                    <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500">
-                      <SelectValue placeholder="Select content type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="announcement">Announcement</SelectItem>
-                      <SelectItem value="tip">Tip/Advice</SelectItem>
-                      <SelectItem value="question">Question</SelectItem>
-                      <SelectItem value="story">Personal Story</SelectItem>
-                      <SelectItem value="quote">Quote/Inspiration</SelectItem>
-                      <SelectItem value="news">Industry News</SelectItem>
-                      <SelectItem value="tutorial">Tutorial/How-to</SelectItem>
-                      <SelectItem value="case-study">Case Study</SelectItem>
-                      <SelectItem value="product-launch">Product Launch</SelectItem>
-                      <SelectItem value="event">Event/Promotion</SelectItem>
-                      <SelectItem value="industry-trend">Industry Trend</SelectItem>
-                      <SelectItem value="behind-scenes">Behind the Scenes</SelectItem>
-                      <SelectItem value="achievement">Achievement/Milestone</SelectItem>
-                      <SelectItem value="poll">Poll/Survey</SelectItem>
-                      <SelectItem value="infographic">Infographic/Stats</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="keyPoints">Key Points</Label>
-                  <Textarea
-                    id="keyPoints"
-                    placeholder="Any specific points you want to include?"
-                    value={formData.keyPoints}
-                    onChange={(e) => handleInputChange('keyPoints', e.target.value)}
-                    className="border-2 border-gray-200 focus:border-blue-500 transition-colors min-h-20"
-                  />
-                </div>
-
-                <Button 
-                  onClick={generateContent}
-                  disabled={isGenerating}
-                  className="w-full bg-gray-900 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
-                >
-                  {isGenerating ? (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Generate Content
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300">
-              <CardHeader className="pb-3 pt-4 px-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-                <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  Generated Content
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                {generatedContent ? (
+              <Button 
+                onClick={generateContent}
+                disabled={isGenerating}
+                className="w-full bg-black text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
+              >
+                {isGenerating ? (
                   <>
-                    {/* Twitter Card */}
-                    <Card className="shadow-md border-2 border-blue-200">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-semibold text-gray-700">Twitter Version</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {isImageLoading.twitter ? (
-                          <div className="w-full flex justify-center mb-2">
-                            <RefreshCw className="animate-spin w-8 h-8 text-blue-400" />
-                          </div>
-                        ) : (generatedContent.imageUrlTwitter ? (
-                          <div className="w-full flex flex-col items-center mb-2">
-                            <img src={generatedContent.imageUrlTwitter} alt="Generated for Twitter" className="rounded-lg max-h-48 object-contain" />
-                            {generatedContent.imageTwitter && (
-                              <span className="block mt-2 text-xs text-gray-700 italic">{generatedContent.imageTwitter}</span>
-                            )}
-                          </div>
-                        ) : null)}
-                        <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
-                          {generatedContent.twitter}
-                        </p>
-                        <div className="mt-2 mb-2">
-                          <span className="text-xs text-teal-700 font-semibold">Suggested Image:</span>
-                          <span className="ml-2 text-xs text-gray-700">{generatedContent.imageTwitter}</span>
-                        </div>
-                        <div className="mt-4 space-y-1">
-                          <div className="flex items-center gap-2 text-blue-600 text-sm">
-                            <Clock className="w-4 h-4" />
-                            <span>Best time to post:</span>
-                            <span className="font-bold text-gray-800 ml-1">{generatedContent.bestTimeTwitter}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-blue-600 text-sm">
-                            <Users className="w-4 h-4" />
-                            <span>Estimated reach:</span>
-                            <span className="font-bold text-gray-800 ml-1">{generatedContent.expectedReachTwitter}</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* LinkedIn Card */}
-                    <Card className="shadow-md border-2 border-blue-700">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-semibold text-gray-700">LinkedIn Version</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {isImageLoading.linkedin ? (
-                          <div className="w-full flex justify-center mb-2">
-                            <RefreshCw className="animate-spin w-8 h-8 text-blue-700" />
-                          </div>
-                        ) : (generatedContent.imageUrlLinkedin ? (
-                          <div className="w-full flex flex-col items-center mb-2">
-                            <img src={generatedContent.imageUrlLinkedin} alt="Generated for LinkedIn" className="rounded-lg max-h-48 object-contain" />
-                            {generatedContent.imageLinkedin && (
-                              <span className="block mt-2 text-xs text-gray-700 italic">{generatedContent.imageLinkedin}</span>
-                            )}
-                          </div>
-                        ) : null)}
-                        <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
-                          {generatedContent.linkedin}
-                        </p>
-                        <div className="mt-2 mb-2">
-                          <span className="text-xs text-teal-700 font-semibold">Suggested Image:</span>
-                          <span className="ml-2 text-xs text-gray-700">{generatedContent.imageLinkedin}</span>
-                        </div>
-                        <div className="mt-4 space-y-1">
-                          <div className="flex items-center gap-2 text-blue-600 text-sm">
-                            <Clock className="w-4 h-4" />
-                            <span>Best time to post:</span>
-                            <span className="font-bold text-gray-800 ml-1">{generatedContent.bestTimeLinkedin}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-blue-600 text-sm">
-                            <Users className="w-4 h-4" />
-                            <span>Estimated reach:</span>
-                            <span className="font-bold text-gray-800 ml-1">{generatedContent.expectedReachLinkedin}</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <div className="flex gap-3">
-                      <Button 
-                        onClick={generateContent}
-                        disabled={isGenerating}
-                        variant="outline"
-                        className="border-2 border-blue-200 hover:bg-blue-50 transition-all duration-200"
-                      >
-                        {isGenerating ? (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="h-4 w-4" />
-                            Regenerate
-                          </>
-                        )}
-                      </Button>
-                    </div>
-
-                    <div className="border-t pt-6">
-                      <Label className="text-lg font-semibold text-gray-700 mb-4 block">
-                        Share Your Content
-                      </Label>
-                      <div className="flex flex-col gap-4">
-                        <div className="space-y-4">
-                          <Button 
-                            onClick={() => handlePost('linkedin', 'aniket')}
-                            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
-                          >
-                            <Linkedin className="mr-2 h-4 w-4" /> Post on LinkedIn
-                          </Button>
-                          <Button 
-                            onClick={() => handlePost('twitter', 'aniket')}
-                            className="w-full bg-blue-400 hover:bg-blue-500 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
-                          >
-                            <Twitter className="mr-2 h-4 w-4" /> Post on Twitter
-                          </Button>
-                        </div>
-
-                      </div>
-                    </div>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
                   </>
                 ) : (
-                  <div className="text-center py-12">
-                    <Sparkles className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 text-lg">
-                      Generate your first piece of content to get started!
-                    </p>
-                  </div>
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Generate Content
+                  </>
                 )}
-              </CardContent>
-            </Card>
-          </div>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Generated Content */}
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader className="bg-black text-white rounded-t-lg">
+              <CardTitle className="flex items-center gap-2">
+                
+                Generated Content
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              {generatedContent ? (
+                <>
+                  {/* Twitter Card */}
+                  <Card className="shadow-md border-2 border-blue-200">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-semibold text-gray-700">Twitter Version</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {isImageLoading.twitter ? (
+                        <div className="w-full flex justify-center mb-2">
+                          <RefreshCw className="animate-spin w-8 h-8 text-blue-400" />
+                        </div>
+                      ) : (generatedContent.imageUrlTwitter ? (
+                        <div className="w-full flex flex-col items-center mb-2">
+                          <img src={generatedContent.imageUrlTwitter} alt="Generated for Twitter" className="rounded-lg max-h-48 object-contain" />
+                          {generatedContent.imageTwitter && (
+                            <span className="block mt-2 text-xs text-gray-700 italic">{generatedContent.imageTwitter}</span>
+                          )}
+                        </div>
+                      ) : null)}
+                      <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                        {generatedContent.twitter}
+                      </p>
+                      <div className="mt-2 mb-2">
+                        <span className="text-xs text-teal-700 font-semibold">Suggested Image:</span>
+                        <span className="ml-2 text-xs text-gray-700">{generatedContent.imageTwitter}</span>
+                      </div>
+                      <div className="mt-4 space-y-1">
+                        <div className="flex items-center gap-2 text-blue-600 text-sm">
+                          <Clock className="w-4 h-4" />
+                          <span>Best time to post:</span>
+                          <span className="font-bold text-gray-800 ml-1">{generatedContent.bestTimeTwitter}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-blue-600 text-sm">
+                          <Users className="w-4 h-4" />
+                          <span>Estimated reach:</span>
+                          <span className="font-bold text-gray-800 ml-1">{generatedContent.expectedReachTwitter}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* LinkedIn Card */}
+                  <Card className="shadow-md border-2 border-blue-700">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-semibold text-gray-700">LinkedIn Version</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {isImageLoading.linkedin ? (
+                        <div className="w-full flex justify-center mb-2">
+                          <RefreshCw className="animate-spin w-8 h-8 text-blue-700" />
+                        </div>
+                      ) : (generatedContent.imageUrlLinkedin ? (
+                        <div className="w-full flex flex-col items-center mb-2">
+                          <img src={generatedContent.imageUrlLinkedin} alt="Generated for LinkedIn" className="rounded-lg max-h-48 object-contain" />
+                          {generatedContent.imageLinkedin && (
+                            <span className="block mt-2 text-xs text-gray-700 italic">{generatedContent.imageLinkedin}</span>
+                          )}
+                        </div>
+                      ) : null)}
+                      <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                        {generatedContent.linkedin}
+                      </p>
+                      <div className="mt-2 mb-2">
+                        <span className="text-xs text-teal-700 font-semibold">Suggested Image:</span>
+                        <span className="ml-2 text-xs text-gray-700">{generatedContent.imageLinkedin}</span>
+                      </div>
+                      <div className="mt-4 space-y-1">
+                        <div className="flex items-center gap-2 text-blue-600 text-sm">
+                          <Clock className="w-4 h-4" />
+                          <span>Best time to post:</span>
+                          <span className="font-bold text-gray-800 ml-1">{generatedContent.bestTimeLinkedin}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-blue-600 text-sm">
+                          <Users className="w-4 h-4" />
+                          <span>Estimated reach:</span>
+                          <span className="font-bold text-gray-800 ml-1">{generatedContent.expectedReachLinkedin}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <div className="flex gap-3">
+                    <Button 
+                      onClick={humanizeContent}
+                      disabled={isHumanizing}
+                      variant="outline"
+                      className="flex-1 border-2 border-purple-200 hover:bg-purple-50 transition-all duration-200"
+                    >
+                      {isHumanizing ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Humanizing...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="mr-2 h-4 w-4" />
+                          Humanize This
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button 
+                      onClick={generateContent}
+                      disabled={isGenerating}
+                      variant="outline"
+                      className="border-2 border-blue-200 hover:bg-blue-50 transition-all duration-200"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="border-t pt-6">
+                    <Label className="text-lg font-semibold text-gray-700 mb-4 block">
+                      Share Your Content
+                    </Label>
+                    <div className="flex flex-col gap-4">
+                      <div className="space-y-4">
+                        <Button 
+                          onClick={() => handlePost('linkedin', 'aniket')}
+                          className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
+                        >
+                          <Linkedin className="mr-2 h-4 w-4" /> Post on LinkedIn
+                        </Button>
+                        <Button 
+                          onClick={() => handlePost('twitter', 'aniket')}
+                          className="w-full bg-blue-400 hover:bg-blue-500 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
+                        >
+                          <Twitter className="mr-2 h-4 w-4" /> Post on Twitter
+                        </Button>
+                      </div>
+
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <Sparkles className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 text-lg">
+                    Generate your first piece of content to get started!
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <div className="mt-12 text-center">
           <div className="flex justify-center gap-2 mb-4">
-            {['AI-Powered', 'Human-like', 'Multi-Platform'].map((badge, index) => (
-              <Badge 
-                key={index}
-                variant="secondary" 
-                className="bg-gray-900 text-white border border-gray-900 px-3 py-1 text-xs font-semibold hover:bg-gray-800 transition-colors duration-300"
-              >
-                {badge}
-              </Badge>
-            ))}
+            <Badge variant="secondary" className="bg-black text-white">AI-Powered</Badge>
+            <Badge variant="secondary" className="bg-black text-white">Human-like</Badge>
+            <Badge variant="secondary" className="bg-black text-white">Multi-Platform</Badge>
           </div>
-          <p className="text-gray-600 text-sm font-medium">
+          <p className="text-gray-600">
             Powered by NeuralArc AI • Built for content creators
           </p>
         </div>
+
+        {/* Modal for post details */}
+        {isModalOpen && selectedPost && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full mx-2 p-0 relative flex flex-col">
+              {/* Close button */}
+              <button className="absolute top-4 right-4 text-gray-400 hover:text-black" onClick={handleCloseModal}><X className="w-6 h-6" /></button>
+              {/* Header */}
+              <div className="flex flex-row items-center gap-3 px-8 pt-8 pb-2">
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${selectedPost.platform === 'LinkedIn' ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-900'}`}>{selectedPost.platform}</span>
+                <span className="font-bold text-xl text-gray-900">{selectedPost.title}</span>
+              </div>
+              <div className="flex flex-col md:flex-row gap-6 px-8 pb-6">
+                {/* Left: Post Content & Metrics */}
+                <div className="flex-1 min-w-[260px]">
+                  <div className="font-semibold text-base text-gray-900 mb-2 mt-2">Post Content</div>
+                  <div className="bg-gray-50 rounded-lg p-4 text-gray-800 text-sm mb-4 whitespace-pre-line h-64 overflow-y-auto">
+                    {selectedPost.content}
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {selectedPost.hashtags && selectedPost.hashtags.map((tag, i) => (
+                        <span key={i} className="bg-white border border-gray-300 text-gray-900 px-3 py-1 rounded-full text-xs font-semibold">{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="font-semibold text-base text-gray-900 mb-2">Performance Metrics</div>
+                  <div className="grid grid-cols-2 gap-3 mb-2">
+                    <div className="bg-blue-50 rounded-lg p-4 flex flex-col items-start">
+                      <span className="text-xs text-blue-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='reach'>👁️</span> Reach</span>
+                      <span className="text-xl font-bold text-blue-900">{selectedPost.reach}</span>
+                    </div>
+                    <div className="bg-green-50 rounded-lg p-4 flex flex-col items-start">
+                      <span className="text-xs text-green-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='engagement'>↗️</span> Engagement</span>
+                      <span className="text-xl font-bold text-green-900">{selectedPost.engagementPotential}%</span>
+                    </div>
+                    <div className="bg-red-50 rounded-lg p-4 flex flex-col items-start">
+                      <span className="text-xs text-red-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='likes'>❤️</span> Likes</span>
+                      <span className="text-xl font-bold text-red-900">{selectedPost.likes}</span>
+                    </div>
+                    <div className="bg-purple-50 rounded-lg p-4 flex flex-col items-start">
+                      <span className="text-xs text-purple-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='shares'>🔄</span> Shares</span>
+                      <span className="text-xl font-bold text-purple-900">{selectedPost.shares}</span>
+                    </div>
+                  </div>
+                </div>
+                {/* Right: AI Insights & Contacts */}
+                <div className="flex-1 min-w-[220px] flex flex-col gap-4 mt-2">
+                  <div>
+                    <div className="font-semibold text-base text-gray-900 mb-2">AI Insights</div>
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-1 text-xs">
+                        <span>Engagement Potential</span>
+                        <span className="font-bold">{selectedPost.engagementPotential}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-gray-200 rounded-full mb-2">
+                        <div className="h-2 bg-black rounded-full" style={{ width: `${selectedPost.engagementPotential}%` }}></div>
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3 flex items-center gap-2 mb-4">
+                      <Clock className="w-4 h-4 text-yellow-700" />
+                      <span className="text-xs text-gray-900 font-semibold">Best Time to Post</span>
+                      <span className="text-xs text-gray-700 ml-auto">{selectedPost.bestTime}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-base text-gray-900 mb-2">Interested Contacts ({selectedPost.interestedContacts?.length || 0})</div>
+                    <div className="flex flex-col gap-2">
+                      {selectedPost.interestedContacts && selectedPost.interestedContacts.map((contact, i) => (
+                        <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
+                          <div>
+                            <div className="font-semibold text-xs text-gray-900">{contact.name}</div>
+                            <div className="text-xs text-gray-500">{contact.subtitle}</div>
+                          </div>
+                          <span className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded-full text-xs font-semibold">{contact.match}% match</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Footer */}
+              <div className="flex justify-end gap-2 px-8 pb-6 pt-2">
+                <Button variant="outline" onClick={handleCloseModal}>Close</Button>
+                <Button className="bg-black text-white">Share Post</Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 export default Index;
-
