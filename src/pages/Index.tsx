@@ -50,6 +50,8 @@ interface GeneratedPost {
   bestTime: string;
   interestedContacts: InterestedContact[];
   created: string;
+  targetArea: string;
+  likePercentage: number;
 }
 
 // Helper function to call Google Image API
@@ -113,74 +115,74 @@ const Index = () => {
   const { toast } = useToast();
   const trendingTopicsSets = [
     [
-      "AI and Machine Learning",
-      "Remote Work Strategies",
-      "Digital Transformation",
-      "Cybersecurity Trends",
-      "Sustainable Business",
-      "Customer Experience",
-      "Data Analytics",
-      "Cloud Computing"
+      "Artificial Intelligence integration",
+      "AI-driven personalization",
+      "Generative AI tools", 
+      "Machine Learning automation",
+      "ChatGPT enterprise adoption",
+      "AI content creation",
+      "Neural networks advancement",
+      "Robotics automation"
     ],
     [
-      "Generative AI",
-      "Green Tech",
-      "Fintech Innovations",
-      "Healthcare AI",
-      "E-commerce Trends",
-      "Remote Collaboration",
-      "Blockchain",
-      "Quantum Computing"
+      "AI ethics and governance",
+      "Computer vision technology", 
+      "Natural language processing",
+      "AI in healthcare",
+      "Autonomous vehicles",
+      "Smart city technologies",
+      "Quantum computing",
+      "Blockchain innovations"
     ],
     [
-      "Creator Economy",
-      "5G & Connectivity",
-      "Women in Tech",
-      "Future of Work",
-      "Smart Cities",
-      "EdTech",
-      "Voice Technology",
-      "Augmented Reality"
+      "Cryptocurrency trends",
+      "NFT marketplace evolution",
+      "Web3 development",
+      "Metaverse platforms",
+      "Remote work optimization",
+      "Hybrid workplace strategies",
+      "Digital nomad lifestyle",
+      "Skills-based hiring"
     ],
     [
-      "SaaS Growth",
-      "Remote Hiring",
-      "Personal Branding",
-      "Diversity & Inclusion",
-      "No-Code Tools",
-      "Productivity Hacks",
-      "Mental Health at Work",
-      "Sustainable Investing"
+      "Career pivoting strategies",
+      "Personal branding online",
+      "LinkedIn networking tactics",
+      "Professional mentorship",
+      "Leadership development",
+      "Emotional intelligence",
+      "Work-life balance",
+      "Employee wellness programs"
     ],
     [
-      "Social Commerce",
-      "Microservices",
-      "Edge Computing",
-      "IoT Security",
-      "Open Source Movement",
-      "Digital Wellbeing",
-      "Crowdsourcing",
-      "Mobile Payments"
+      "Diversity and inclusion",
+      "Gender pay gap discussions",
+      "Quiet leadership trends",
+      "Startup funding rounds",
+      "Venture capital trends",
+      "Business model innovation",
+      "Digital transformation",
+      "E-commerce growth"
     ],
     [
-      "NFTs & Web3",
-      "Digital Twins",
-      "Supply Chain Tech",
-      "Agile Transformation",
-      "Customer Data Platforms",
-      "Subscription Economy",
-      "Remote Onboarding",
-      "AI Ethics"
+      "Subscription economy",
+      "Creator economy expansion",
+      "Influencer marketing ROI",
+      "Social commerce",
+      "B2B marketing automation",
+      "Customer experience optimization",
+      "Data-driven decision making",
+      "Supply chain resilience"
     ],
     [
-      "Climate Tech",
-      "FoodTech",
-      "Wearable Devices",
-      "Robotic Process Automation",
-      "Hyperautomation",
-      "Privacy by Design",
-      "Digital Therapeutics",
-      "Smart Home"
+      "Sustainable business practices",
+      "ESG investing",
+      "Short-form video content",
+      "Interactive content formats",
+      "Live streaming engagement",
+      "User-generated content",
+      "Micro-influencer partnerships",
+      "Authentic storytelling"
     ]
   ];
   const [trendingTopics, setTrendingTopics] = useState<string[]>(trendingTopicsSets[0]);
@@ -190,6 +192,7 @@ const Index = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedPost, setSelectedPost] = useState<GeneratedPost | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isHumanizingModal, setIsHumanizingModal] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -523,7 +526,7 @@ const Index = () => {
       const prompt = `Generate 4 social media posts (2 for LinkedIn, 2 for Twitter) for the topic: "${searchValue}". For each post, provide the following fields:
 - platform: (LinkedIn or Twitter)
 - title: (catchy, max 60 chars)
-- content: (for LinkedIn: detailed, multi-paragraph, professional, 800-1500 characters, with intro, main points, and conclusion; for Twitter: concise, max 280 characters)
+- content: (for LinkedIn: detailed, multi-paragraph, professional, 800-1500 characters, and must start with a heading in the format 'Heading: ...' on the first line, then a blank line, then the body; for Twitter: concise, max 280 characters)
 - reach: (e.g. 3K - 11K)
 - likes: (number)
 - comments: (number)
@@ -532,9 +535,12 @@ const Index = () => {
 - score: (as a percentage, e.g. 94)
 - engagementPotential: (as a percentage, e.g. 94)
 - bestTime: (best time to post, e.g. Tuesday, 9:00 AM - 11:00 AM)
+- targetArea: (the main area, industry, or audience this post targets)
+- likePercentage: (estimated percentage of people who will like this post)
 - interestedContacts: (array of 3 objects, each with name, subtitle, and match percentage)
 - created: (date, format: DD/MM/YYYY)
-Format the response as a JSON array of objects with these keys: platform, title, content, reach, likes, comments, shares, hashtags, score, engagementPotential, bestTime, interestedContacts, created.`;
+- Do not use asterisks (*) anywhere in the content, including for bullet points, emphasis, or formatting.
+Format the response as a JSON array of objects with these keys: platform, title, content, reach, likes, comments, shares, hashtags, score, engagementPotential, bestTime, targetArea, likePercentage, interestedContacts, created.`;
       const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -577,7 +583,74 @@ Format the response as a JSON array of objects with these keys: platform, title,
     setSearchValue("");
   };
 
+  // Share post from modal
+  const handleSharePost = async () => {
+    if (!selectedPost) return;
+    try {
+      let account: 'aniket' | 'neuralArc' = 'aniket'; // Default or let user choose
+      if (selectedPost.platform === 'Twitter') {
+        await postToTwitter(selectedPost.content, account);
+        toast({
+          title: "Success",
+          description: `Posted to Twitter successfully!`,
+        });
+      } else {
+        await postToLinkedIn(selectedPost.content, account);
+        toast({
+          title: "Success",
+          description: `Posted to LinkedIn successfully!`,
+        });
+      }
+      setIsModalOpen(false);
+      setSelectedPost(null);
+    } catch (error) {
+      console.error('Error posting:', error);
+      toast({
+        title: "Error",
+        description: "Failed to post content. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Humanize post from modal
+  const handleHumanizeModal = async () => {
+    if (!selectedPost) return;
+    setIsHumanizingModal(true);
+    try {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const prompt = `Make this social media post more natural and conversational while keeping the same message. Return ONLY the improved version, no explanations or formatting:\n\n${selectedPost.content}`;
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [ { parts: [ { text: prompt } ] } ],
+          generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 1024 }
+        })
+      });
+      if (!response.ok) throw new Error('Failed to humanize content');
+      const data = await response.json();
+      const newContent = data.candidates[0].content.parts[0].text.trim();
+      setSelectedPost({ ...selectedPost, content: newContent });
+      toast({
+        title: "Content Humanized!",
+        description: "Your post has been made more natural and engaging.",
+      });
+    } catch (error) {
+      toast({
+        title: "Humanization Failed",
+        description: "Failed to humanize content. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsHumanizingModal(false);
+    }
+  };
+
+
+
   return (
+
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
       <div className="max-w-[1600px] w-full mx-auto px-2 sm:px-4">
         <div className="text-center mt-2 mt-3">
@@ -610,7 +683,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
               onClick={handleSearch}
               disabled={isSearching}
             >
-              {isSearching ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}Search
+              {isSearching ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}Generate
             </Button>
             <Button
               variant="outline"
@@ -668,8 +741,11 @@ Format the response as a JSON array of objects with these keys: platform, title,
           </div>
         )}
 
+
+{/*  
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
-          {/* Input Form */}
+         
           <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
             <CardHeader className="bg-black text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-2">
@@ -773,7 +849,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
             </CardContent>
           </Card>
 
-          {/* Generated Content */}
+         
           <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
             <CardHeader className="bg-black text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-2">
@@ -784,7 +860,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
             <CardContent className="p-6 space-y-6">
               {generatedContent ? (
                 <>
-                  {/* Twitter Card */}
+               
                   <Card className="shadow-md border-2 border-blue-200">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-semibold text-gray-700">Twitter Version</CardTitle>
@@ -824,7 +900,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                     </CardContent>
                   </Card>
 
-                  {/* LinkedIn Card */}
+               
                   <Card className="shadow-md border-2 border-blue-700">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-semibold text-gray-700">LinkedIn Version</CardTitle>
@@ -928,6 +1004,10 @@ Format the response as a JSON array of objects with these keys: platform, title,
             </CardContent>
           </Card>
         </div>
+  */}
+
+
+
 
         <div className="mt-12 text-center">
           <div className="flex justify-center gap-2 mb-4">
@@ -956,7 +1036,22 @@ Format the response as a JSON array of objects with these keys: platform, title,
                 <div className="flex-1 min-w-[260px]">
                   <div className="font-semibold text-base text-gray-900 mb-2 mt-2">Post Content</div>
                   <div className="bg-gray-50 rounded-lg p-4 text-gray-800 text-sm mb-4 whitespace-pre-line h-64 overflow-y-auto">
-                    {selectedPost.content}
+                    {selectedPost.platform === 'LinkedIn' ? (
+                      (() => {
+                        // Expecting format: Heading: ...\n\nBody...
+                        const match = selectedPost.content.match(/^Heading:\s*(.*)\n\n([\s\S]*)/);
+                        if (match) {
+                          return <>
+                            <div className="font-bold text-base mb-2">{match[1]}</div>
+                            <div>{match[2]}</div>
+                          </>;
+                        } else {
+                          return <>{selectedPost.content}</>;
+                        }
+                      })()
+                    ) : (
+                      <>{selectedPost.content}</>
+                    )}
                     <div className="flex flex-wrap gap-2 mt-3">
                       {selectedPost.hashtags && selectedPost.hashtags.map((tag, i) => (
                         <span key={i} className="bg-white border border-gray-300 text-gray-900 px-3 py-1 rounded-full text-xs font-semibold">{tag}</span>
@@ -1003,17 +1098,16 @@ Format the response as a JSON array of objects with these keys: platform, title,
                     </div>
                   </div>
                   <div>
-                    <div className="font-semibold text-base text-gray-900 mb-2">Interested Contacts ({selectedPost.interestedContacts?.length || 0})</div>
+                    <div className="font-semibold text-base text-gray-900 mb-2">Interested Contacts</div>
                     <div className="flex flex-col gap-2">
-                      {selectedPost.interestedContacts && selectedPost.interestedContacts.map((contact, i) => (
-                        <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
-                          <div>
-                            <div className="font-semibold text-xs text-gray-900">{contact.name}</div>
-                            <div className="text-xs text-gray-500">{contact.subtitle}</div>
-                          </div>
-                          <span className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded-full text-xs font-semibold">{contact.match}% match</span>
+                      <div className="bg-gray-50 rounded-lg px-3 py-3 border border-gray-200 flex flex-col gap-2 mb-2">
+                        <div className="text-xs text-gray-500">Target Area</div>
+                        <div className="font-semibold text-sm text-gray-900">{selectedPost.targetArea}</div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs text-gray-500">% of people likely to like this post:</span>
+                          <span className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded-full text-xs font-semibold">{selectedPost.likePercentage}%</span>
                         </div>
-                      ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1021,14 +1115,26 @@ Format the response as a JSON array of objects with these keys: platform, title,
               {/* Footer */}
               <div className="flex justify-end gap-2 px-8 pb-6 pt-2">
                 <Button variant="outline" onClick={handleCloseModal}>Close</Button>
-                <Button className="bg-black text-white">Share Post</Button>
+                <Button onClick={handleHumanizeModal} disabled={isHumanizingModal} variant="secondary">
+                  {isHumanizingModal ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Humanize
+                </Button>
+                <Button className="bg-black text-white" onClick={handleSharePost}>Share Post</Button>
               </div>
             </div>
           </div>
         )}
       </div>
     </div>
+
+
+
+
   );
 };
+
+
+
+
 
 export default Index;
