@@ -52,6 +52,8 @@ interface GeneratedPost {
   created: string;
   targetArea: string;
   likePercentage: number;
+  imageUrl?: string;
+  imageCaption?: string;
 }
 
 // Helper function to call Google Image API
@@ -65,32 +67,73 @@ async function generateImage(prompt: string, apiKey: string): Promise<{ image: s
         body: JSON.stringify({
           contents: [
             {
+              role: "user",
               parts: [
-                { text: prompt + '\nAlso provide a short caption for the image. Return both the image and the caption.' }
+                { text: prompt }
               ]
             }
-          ]
+          ],
+          generation_config: {
+            // Corrected parameter name: response_modalities
+            response_modalities: ["IMAGE", "TEXT"] // Request both image and text
+          }
         })
       }
     );
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Image API error:', errorText);
       return { image: null, caption: '' };
     }
+
     const data = await response.json();
     const parts = data?.candidates?.[0]?.content?.parts || [];
+
     const textPart = parts.find((p: any) => p.text);
     const imagePart = parts.find((p: any) => p.inlineData && p.inlineData.mimeType.startsWith('image/'));
+
     const caption = textPart?.text || '';
     const base64 = imagePart?.inlineData?.data;
-    return { image: base64 ? `data:image/jpeg;base64,${base64}` : null, caption };
+
+    // Use the actual mimeType from the response if available, or default to image/jpeg
+    const mimeType = imagePart?.inlineData?.mimeType || 'image/jpeg'; 
+
+    return { image: base64 ? `data:${mimeType};base64,${base64}` : null, caption };
   } catch (err) {
     console.error('Image API error:', err);
     return { image: null, caption: '' };
   }
 }
 
+// Example usage:
+// (Remember to replace 'YOUR_API_KEY' with your actual API key)
+// generateImage("A playful golden retriever puppy chasing a butterfly in a sunny meadow.", "YOUR_API_KEY")
+//   .then(result => {
+//     if (result.image) {
+//       console.log('Image generated! Base64 data (first 50 chars):', result.image.substring(0, 50) + "...");
+//       console.log('Caption:', result.caption);
+//       // You can now use result.image in an <img> tag:
+//       // document.getElementById('myImage').src = result.image;
+//     } else {
+//       console.log('Failed to generate image.');
+//     }
+//   })
+//   .catch(error => console.error('Error in example usage:', error));
+
+// Example usage (replace with your actual API key and desired prompt)
+// generateImage("A majestic lion sitting on a rock at sunset.", "YOUR_API_KEY_HERE")
+//   .then(result => {
+//     if (result.image) {
+//       console.log('Image generated:', result.image.substring(0, 50) + "..."); // Log first 50 chars of base64
+//       console.log('Caption:', result.caption);
+//       // You can then display this base64 image in an <img> tag:
+//       // <img src={result.image} alt={result.caption} />
+//     } else {
+//       console.log('Image generation failed.');
+//     }
+//   })
+//   .catch(error => console.error('Error in example usage:', error));
 // Add TrendingUpIcon SVG component
 const TrendingUpIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon icon-tabler icons-tabler-outline icon-tabler-trending-up">
@@ -534,7 +577,7 @@ const Index = () => {
 - hashtags: (array of 2-4 relevant hashtags)
 - score: (as a percentage, e.g. 94)
 - engagementPotential: (as a percentage, e.g. 94)
-- bestTime: (best time to post, e.g. Tuesday, 9:00 AM - 11:00 AM)
+- bestTime: (best time to post, e.g. 9:00 AM - 11:00 AM)
 - targetArea: (the main area, industry, or audience this post targets)
 - likePercentage: (estimated percentage of people who will like this post)
 - interestedContacts: (array of 3 objects, each with name, subtitle, and match percentage)
@@ -554,7 +597,22 @@ Format the response as a JSON array of objects with these keys: platform, title,
       const text = data.candidates[0].content.parts[0].text;
       // Try to extract JSON from the response
       const jsonMatch = text.match(/\[.*\]/s);
-      const posts: GeneratedPost[] = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+      let posts: GeneratedPost[] = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+
+      // Generate images for each post
+      posts = await Promise.all(posts.map(async (post) => {
+        // Use hashtags or content as prompt
+        let imagePrompt = post.hashtags && post.hashtags.length > 0
+          ? `Create an image for a social media post about: ${post.hashtags.join(', ')}.`
+          : `Create an image for this post: ${post.content}`;
+        const imgResult = await generateImage(imagePrompt, apiKey);
+        return {
+          ...post,
+          imageUrl: imgResult.image || '',
+          imageCaption: imgResult.caption || '',
+        };
+      }));
+
       setGeneratedPosts(posts);
     } catch (err) {
       setGeneratedPosts([]);
@@ -619,7 +677,20 @@ Format the response as a JSON array of objects with these keys: platform, title,
     setIsHumanizingModal(true);
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      const prompt = `Make this social media post more natural and conversational while keeping the same message. Return ONLY the improved version, no explanations or formatting:\n\n${selectedPost.content}`;
+      let prompt, heading = '', body = '';
+      if (selectedPost.platform === 'LinkedIn') {
+        // Extract heading and body
+        const match = selectedPost.content.match(/^Heading:\s*(.*)\n\n([\s\S]*)/);
+        if (match) {
+          heading = match[1];
+          body = match[2];
+        } else {
+          body = selectedPost.content;
+        }
+        prompt = `Make this LinkedIn post more natural and conversational while keeping the same message. Return ONLY the improved body (not the heading), no explanations or formatting:\n\n${body}`;
+      } else {
+        prompt = `Make this social media post more natural and conversational while keeping the same message. Return ONLY the improved version, no explanations or formatting:\n\n${selectedPost.content}`;
+      }
       const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -630,7 +701,13 @@ Format the response as a JSON array of objects with these keys: platform, title,
       });
       if (!response.ok) throw new Error('Failed to humanize content');
       const data = await response.json();
-      const newContent = data.candidates[0].content.parts[0].text.trim();
+      const newBody = data.candidates[0].content.parts[0].text.trim();
+      let newContent;
+      if (selectedPost.platform === 'LinkedIn' && heading) {
+        newContent = `Heading: ${heading}\n\n${newBody}`;
+      } else {
+        newContent = newBody;
+      }
       setSelectedPost({ ...selectedPost, content: newContent });
       toast({
         title: "Content Humanized!",
@@ -653,7 +730,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
 
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
       <div className="max-w-[1600px] w-full mx-auto px-2 sm:px-4">
-        <div className="text-center mt-2 mt-3">
+        <div className="text-center mt-2 mt-9">
           <div className="flex items-center justify-center mb-4">
             <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent">
               Social Spark
@@ -1110,6 +1187,15 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       </div>
                     </div>
                   </div>
+                  {/* Generated Image Section */}
+                  {selectedPost.imageUrl && (
+                    <div className="flex flex-col items-center mt-2 mb-4">
+                      <img src={selectedPost.imageUrl} alt="Generated for this post" className="rounded-lg max-h-40 object-contain border border-gray-200" />
+                      {selectedPost.imageCaption && (
+                        <span className="block mt-2 text-xs text-gray-700 italic text-center">{selectedPost.imageCaption}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
               {/* Footer */}
