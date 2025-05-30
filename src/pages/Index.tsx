@@ -513,41 +513,85 @@ const Index = () => {
         </div>
 
         {/* Trending Cards Section */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 text-center">Trending Content Types</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="mb-16">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center tracking-tight">Trending Content Types</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             {trendingCards.map((card, index) => (
               <div 
                 key={index}
                 onClick={() => handleCardClick(card)}
-                className="cursor-pointer"
+                className="group cursor-pointer transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
               >
-                <Card className="bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 h-full">
-                  <CardHeader className="pb-2 border-b border-gray-100">
-                    <CardTitle className="text-base font-semibold text-gray-800">
+                <Card className="bg-white border-2 border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 h-full overflow-hidden relative">
+                  {/* Hover Effect Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-black/0 to-black/0 group-hover:from-black/5 group-hover:to-black/10 transition-all duration-300" />
+                  
+                  <CardHeader className="pb-3 border-b-2 border-gray-100 bg-gradient-to-br from-gray-50 to-white">
+                    <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
                       {card.title}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-4 space-y-3">
-                    <div className="space-y-2">
-                      <div className="flex items-start gap-2">
-                        <Clock className="w-4 h-4 text-gray-500 mt-0.5" />
+                  
+                  <CardContent className="pt-5 space-y-5">
+                    <div className="space-y-4">
+                      {/* Best Time Section */}
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1 p-2 rounded-lg bg-gray-100 group-hover:bg-gray-200 transition-colors duration-300">
+                          <Clock className="w-4 h-4 text-gray-900" />
+                        </div>
                         <div>
-                          <p className="text-xs text-gray-500 font-medium">Best time to post</p>
-                          <p className="text-sm text-gray-700">{card.bestTime}</p>
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Best time to post</p>
+                          <p className="text-sm font-medium text-gray-900">{card.bestTime}</p>
                         </div>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <Users className="w-4 h-4 text-gray-500 mt-0.5" />
+
+                      {/* Estimated Reach Section */}
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1 p-2 rounded-lg bg-gray-100 group-hover:bg-gray-200 transition-colors duration-300">
+                          <Users className="w-4 h-4 text-gray-900" />
+                        </div>
                         <div>
-                          <p className="text-xs text-gray-500 font-medium">Estimated reach</p>
-                          <p className="text-sm text-gray-700">{card.estimatedReach}</p>
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Estimated reach</p>
+                          <p className="text-sm font-medium text-gray-900">{card.estimatedReach}</p>
                         </div>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="w-full justify-center bg-blue-50 text-blue-700 border border-blue-100">
-                      {card.category}
-                    </Badge>
+
+                    {/* Category Badge */}
+                    <div className="pt-2">
+                      <Badge 
+                        variant="secondary" 
+                        className={`w-full justify-center text-sm font-semibold py-2 border-2 transition-all duration-300 ${
+                          card.category === 'High Engagement' ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800' :
+                          card.category === 'Professional' ? 'bg-gray-800 text-white border-gray-800 hover:bg-gray-700' :
+                          card.category === 'Inspirational' ? 'bg-gray-700 text-white border-gray-700 hover:bg-gray-600' :
+                          card.category === 'Educational' ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800' :
+                          'bg-gray-800 text-white border-gray-800 hover:bg-gray-700'
+                        }`}
+                      >
+                        {card.category}
+                      </Badge>
+                    </div>
+
+                    {/* Click Indicator */}
+                    <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="flex items-center gap-1 text-xs font-medium text-gray-500">
+                        Click to generate
+                        <svg 
+                          className="w-4 h-4" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth={2} 
+                            d="M9 5l7 7-7 7" 
+                          />
+                        </svg>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -768,9 +812,9 @@ const Index = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
           {/* Input Form */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="bg-black text-white rounded-t-lg">
-              <CardTitle className="flex items-center gap-2">
+          <Card className="shadow-xl border-2 border-gray-100 bg-white">
+            <CardHeader className="bg-gray-900 text-white rounded-t-lg">
+              <CardTitle className="flex items-center gap-2 text-xl font-bold">
                 Content Generator
               </CardTitle>
             </CardHeader>
@@ -843,7 +887,7 @@ const Index = () => {
               <Button 
                 onClick={generateContent}
                 disabled={isGenerating}
-                className="w-full bg-black text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
+                className="w-full bg-gray-900 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
               >
                 {isGenerating ? (
                   <>
@@ -861,10 +905,9 @@ const Index = () => {
           </Card>
 
           {/* Generated Content */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="bg-black text-white rounded-t-lg">
-              <CardTitle className="flex items-center gap-2">
-                
+          <Card className="shadow-xl border-2 border-gray-100 bg-white">
+            <CardHeader className="bg-gray-900 text-white rounded-t-lg">
+              <CardTitle className="flex items-center gap-2 text-xl font-bold">
                 Generated Content
               </CardTitle>
             </CardHeader>
@@ -1007,13 +1050,13 @@ const Index = () => {
           </Card>
         </div>
 
-        <div className="mt-12 text-center">
-          <div className="flex justify-center gap-2 mb-4">
-            <Badge variant="secondary" className="bg-black text-white">AI-Powered</Badge>
-            <Badge variant="secondary" className="bg-black text-white">Human-like</Badge>
-            <Badge variant="secondary" className="bg-black text-white">Multi-Platform</Badge>
+        <div className="mt-16 text-center">
+          <div className="flex justify-center gap-3 mb-4">
+            <Badge variant="secondary" className="bg-gray-900 text-white border-2 border-gray-900 px-4 py-1.5 text-sm font-semibold">AI-Powered</Badge>
+            <Badge variant="secondary" className="bg-gray-900 text-white border-2 border-gray-900 px-4 py-1.5 text-sm font-semibold">Human-like</Badge>
+            <Badge variant="secondary" className="bg-gray-900 text-white border-2 border-gray-900 px-4 py-1.5 text-sm font-semibold">Multi-Platform</Badge>
           </div>
-          <p className="text-gray-600">
+          <p className="text-gray-600 font-medium">
             Powered by NeuralArc AI • Built for content creators
           </p>
         </div>
@@ -1023,3 +1066,4 @@ const Index = () => {
 };
 
 export default Index;
+
