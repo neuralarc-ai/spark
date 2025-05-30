@@ -111,16 +111,79 @@ const Index = () => {
   const [isHumanizing, setIsHumanizing] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState<{twitter: boolean, linkedin: boolean}>({twitter: false, linkedin: false});
   const { toast } = useToast();
-  const trendingTopics = [
-    "AI and Machine Learning",
-    "Remote Work Strategies",
-    "Digital Transformation",
-    "Cybersecurity Trends",
-    "Sustainable Business",
-    "Customer Experience",
-    "Data Analytics",
-    "Cloud Computing"
+  const trendingTopicsSets = [
+    [
+      "AI and Machine Learning",
+      "Remote Work Strategies",
+      "Digital Transformation",
+      "Cybersecurity Trends",
+      "Sustainable Business",
+      "Customer Experience",
+      "Data Analytics",
+      "Cloud Computing"
+    ],
+    [
+      "Generative AI",
+      "Green Tech",
+      "Fintech Innovations",
+      "Healthcare AI",
+      "E-commerce Trends",
+      "Remote Collaboration",
+      "Blockchain",
+      "Quantum Computing"
+    ],
+    [
+      "Creator Economy",
+      "5G & Connectivity",
+      "Women in Tech",
+      "Future of Work",
+      "Smart Cities",
+      "EdTech",
+      "Voice Technology",
+      "Augmented Reality"
+    ],
+    [
+      "SaaS Growth",
+      "Remote Hiring",
+      "Personal Branding",
+      "Diversity & Inclusion",
+      "No-Code Tools",
+      "Productivity Hacks",
+      "Mental Health at Work",
+      "Sustainable Investing"
+    ],
+    [
+      "Social Commerce",
+      "Microservices",
+      "Edge Computing",
+      "IoT Security",
+      "Open Source Movement",
+      "Digital Wellbeing",
+      "Crowdsourcing",
+      "Mobile Payments"
+    ],
+    [
+      "NFTs & Web3",
+      "Digital Twins",
+      "Supply Chain Tech",
+      "Agile Transformation",
+      "Customer Data Platforms",
+      "Subscription Economy",
+      "Remote Onboarding",
+      "AI Ethics"
+    ],
+    [
+      "Climate Tech",
+      "FoodTech",
+      "Wearable Devices",
+      "Robotic Process Automation",
+      "Hyperautomation",
+      "Privacy by Design",
+      "Digital Therapeutics",
+      "Smart Home"
+    ]
   ];
+  const [trendingTopics, setTrendingTopics] = useState<string[]>(trendingTopicsSets[0]);
   const [searchValue, setSearchValue] = useState("");
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [generatedPosts, setGeneratedPosts] = useState<GeneratedPost[]>([]);
@@ -504,6 +567,16 @@ Format the response as a JSON array of objects with these keys: platform, title,
     setSelectedPost(null);
   };
 
+  const handleRefreshTrending = () => {
+    let newSet;
+    do {
+      newSet = trendingTopicsSets[Math.floor(Math.random() * trendingTopicsSets.length)];
+    } while (newSet === trendingTopics);
+    setTrendingTopics(newSet);
+    setSelectedTopic(null);
+    setSearchValue("");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
       <div className="max-w-[1600px] w-full mx-auto px-2 sm:px-4">
@@ -543,6 +616,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
               variant="outline"
               className="border-2 border-gray-200 rounded-lg px-6 text-base h-11"
               style={{ minHeight: 44 }}
+              onClick={handleRefreshTrending}
             >
               <ArrowUpRight className="w-4 h-4 mr-2" />Refresh
             </Button>
