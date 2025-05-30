@@ -69,7 +69,7 @@ async function generateImage(prompt: string, apiKey: string): Promise<{ image: s
             {
               role: "user",
               parts: [
-                { text: `Generate an image for: ${prompt}. Use only these colors : #161616, #1E342F, #2B2521, #3987BE, #495663, #97A487, #A8B0B8, #A9A9A9, #B7A694, #B7BEAE, #C6AEA3, #CFD2D4, #CFD4C9, #D0C3B5, #D48EA3, #E3E2DF, #F8F7F3.` }
+                { text: `Generate an image for: ${prompt}.` }
               ]
             }
           ],
