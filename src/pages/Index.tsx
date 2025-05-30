@@ -513,89 +513,87 @@ const Index = () => {
         </div>
 
         {/* Trending Cards Section */}
-        <div className="mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center tracking-tight">Trending Content Types</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            {trendingCards.map((card, index) => (
-              <div 
-                key={index}
-                onClick={() => handleCardClick(card)}
-                className="group cursor-pointer transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <Card className="bg-white border-2 border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 h-full overflow-hidden relative">
-                  {/* Hover Effect Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-black/0 to-black/0 group-hover:from-black/5 group-hover:to-black/10 transition-all duration-300" />
-                  
-                  <CardHeader className="pb-3 border-b-2 border-gray-100 bg-gradient-to-br from-gray-50 to-white">
-                    <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                      {card.title}
-                    </CardTitle>
-                  </CardHeader>
-                  
-                  <CardContent className="pt-5 space-y-5">
-                    <div className="space-y-4">
-                      {/* Best Time Section */}
-                      <div className="flex items-start gap-3">
-                        <div className="mt-1 p-2 rounded-lg bg-gray-100 group-hover:bg-gray-200 transition-colors duration-300">
-                          <Clock className="w-4 h-4 text-gray-900" />
+        <div className="mb-12">
+          <div className="max-w-7xl mx-auto px-4">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center tracking-tight">Trending Content Types</h2>
+            <p className="text-gray-500 text-center mb-8 text-sm">Click on any card to generate optimized content</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {trendingCards.map((card, index) => (
+                <div 
+                  key={index}
+                  onClick={() => handleCardClick(card)}
+                  className="group cursor-pointer transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 h-[200px] overflow-hidden relative">
+                    {/* Hover Effect Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-black/0 via-black/0 to-black/0 group-hover:from-black/5 group-hover:via-black/5 group-hover:to-black/10 transition-all duration-300" />
+                    
+                    {/* Card Header */}
+                    <CardHeader className="pb-2 pt-3 px-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-[15px] font-bold text-gray-900 leading-tight">
+                          {card.title}
+                        </CardTitle>
+                        <div className="w-6 h-6 rounded-full bg-gray-100 group-hover:bg-gray-200 transition-colors duration-300 flex items-center justify-center">
+                          <svg 
+                            className="w-3.5 h-3.5 text-gray-600 transform group-hover:translate-x-0.5 transition-transform duration-300" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
                         </div>
-                        <div>
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Best time to post</p>
-                          <p className="text-sm font-medium text-gray-900">{card.bestTime}</p>
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="p-4 space-y-3">
+                      {/* Best Time Section */}
+                      <div className="flex items-start gap-2.5">
+                        <div className="mt-0.5 p-1.5 rounded-md bg-gray-50 group-hover:bg-gray-100 transition-colors duration-300 border border-gray-100">
+                          <Clock className="w-3.5 h-3.5 text-gray-700" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Best time to post</p>
+                          <p className="text-[13px] font-medium text-gray-900 mt-0.5 truncate">{card.bestTime}</p>
                         </div>
                       </div>
 
                       {/* Estimated Reach Section */}
-                      <div className="flex items-start gap-3">
-                        <div className="mt-1 p-2 rounded-lg bg-gray-100 group-hover:bg-gray-200 transition-colors duration-300">
-                          <Users className="w-4 h-4 text-gray-900" />
+                      <div className="flex items-start gap-2.5">
+                        <div className="mt-0.5 p-1.5 rounded-md bg-gray-50 group-hover:bg-gray-100 transition-colors duration-300 border border-gray-100">
+                          <Users className="w-3.5 h-3.5 text-gray-700" />
                         </div>
-                        <div>
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Estimated reach</p>
-                          <p className="text-sm font-medium text-gray-900">{card.estimatedReach}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Estimated reach</p>
+                          <p className="text-[13px] font-medium text-gray-900 mt-0.5 truncate">{card.estimatedReach}</p>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Category Badge */}
-                    <div className="pt-2">
-                      <Badge 
-                        variant="secondary" 
-                        className={`w-full justify-center text-sm font-semibold py-2 border-2 transition-all duration-300 ${
-                          card.category === 'High Engagement' ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800' :
-                          card.category === 'Professional' ? 'bg-gray-800 text-white border-gray-800 hover:bg-gray-700' :
-                          card.category === 'Inspirational' ? 'bg-gray-700 text-white border-gray-700 hover:bg-gray-600' :
-                          card.category === 'Educational' ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800' :
-                          'bg-gray-800 text-white border-gray-800 hover:bg-gray-700'
-                        }`}
-                      >
-                        {card.category}
-                      </Badge>
-                    </div>
-
-                    {/* Click Indicator */}
-                    <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <div className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                        Click to generate
-                        <svg 
-                          className="w-4 h-4" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          viewBox="0 0 24 24"
+                      {/* Category Badge */}
+                      <div className="pt-1">
+                        <Badge 
+                          variant="secondary" 
+                          className={`w-full justify-center text-[11px] font-semibold py-1.5 border transition-all duration-300 ${
+                            card.category === 'High Engagement' ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800' :
+                            card.category === 'Professional' ? 'bg-gray-800 text-white border-gray-800 hover:bg-gray-700' :
+                            card.category === 'Inspirational' ? 'bg-gray-700 text-white border-gray-700 hover:bg-gray-600' :
+                            card.category === 'Educational' ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800' :
+                            'bg-gray-800 text-white border-gray-800 hover:bg-gray-700'
+                          }`}
                         >
-                          <path 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round" 
-                            strokeWidth={2} 
-                            d="M9 5l7 7-7 7" 
-                          />
-                        </svg>
+                          {card.category}
+                        </Badge>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ))}
+
+                      {/* Hover Indicator */}
+                      <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                    </CardContent>
+                  </Card>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -810,253 +808,259 @@ const Index = () => {
           </DialogContent>
         </Dialog>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
-          {/* Input Form */}
-          <Card className="shadow-xl border-2 border-gray-100 bg-white">
-            <CardHeader className="bg-gray-900 text-white rounded-t-lg">
-              <CardTitle className="flex items-center gap-2 text-xl font-bold">
-                Content Generator
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="topic">Topic *</Label>
-                <Input
-                  id="topic"
-                  placeholder="What do you want to post about?"
-                  value={formData.topic}
-                  onChange={(e) => handleInputChange('topic', e.target.value)}
-                  className="border-2 border-gray-200 focus:border-blue-500 transition-colors"
-                />
-              </div>
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300">
+              <CardHeader className="pb-3 pt-4 px-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  Content Generator
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="topic">Topic *</Label>
+                  <Input
+                    id="topic"
+                    placeholder="What do you want to post about?"
+                    value={formData.topic}
+                    onChange={(e) => handleInputChange('topic', e.target.value)}
+                    className="border-2 border-gray-200 focus:border-blue-500 transition-colors"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="tone">Tone *</Label>
-                <Select onValueChange={(value) => handleInputChange('tone', value)}>
-                  <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500">
-                    <SelectValue placeholder="Select tone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="professional">Professional</SelectItem>
-                    <SelectItem value="casual">Casual</SelectItem>
-                    <SelectItem value="enthusiastic">Enthusiastic</SelectItem>
-                    <SelectItem value="inspirational">Inspirational</SelectItem>
-                    <SelectItem value="humorous">Humorous</SelectItem>
-                    <SelectItem value="educational">Educational</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tone">Tone *</Label>
+                  <Select onValueChange={(value) => handleInputChange('tone', value)}>
+                    <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500">
+                      <SelectValue placeholder="Select tone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="professional">Professional</SelectItem>
+                      <SelectItem value="casual">Casual</SelectItem>
+                      <SelectItem value="enthusiastic">Enthusiastic</SelectItem>
+                      <SelectItem value="inspirational">Inspirational</SelectItem>
+                      <SelectItem value="humorous">Humorous</SelectItem>
+                      <SelectItem value="educational">Educational</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="type">Content Type</Label>
-                <Select onValueChange={(value) => handleInputChange('type', value)}>
-                  <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500">
-                    <SelectValue placeholder="Select content type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="announcement">Announcement</SelectItem>
-                    <SelectItem value="tip">Tip/Advice</SelectItem>
-                    <SelectItem value="question">Question</SelectItem>
-                    <SelectItem value="story">Personal Story</SelectItem>
-                    <SelectItem value="quote">Quote/Inspiration</SelectItem>
-                    <SelectItem value="news">Industry News</SelectItem>
-                    <SelectItem value="tutorial">Tutorial/How-to</SelectItem>
-                    <SelectItem value="case-study">Case Study</SelectItem>
-                    <SelectItem value="product-launch">Product Launch</SelectItem>
-                    <SelectItem value="event">Event/Promotion</SelectItem>
-                    <SelectItem value="industry-trend">Industry Trend</SelectItem>
-                    <SelectItem value="behind-scenes">Behind the Scenes</SelectItem>
-                    <SelectItem value="achievement">Achievement/Milestone</SelectItem>
-                    <SelectItem value="poll">Poll/Survey</SelectItem>
-                    <SelectItem value="infographic">Infographic/Stats</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="type">Content Type</Label>
+                  <Select onValueChange={(value) => handleInputChange('type', value)}>
+                    <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500">
+                      <SelectValue placeholder="Select content type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="announcement">Announcement</SelectItem>
+                      <SelectItem value="tip">Tip/Advice</SelectItem>
+                      <SelectItem value="question">Question</SelectItem>
+                      <SelectItem value="story">Personal Story</SelectItem>
+                      <SelectItem value="quote">Quote/Inspiration</SelectItem>
+                      <SelectItem value="news">Industry News</SelectItem>
+                      <SelectItem value="tutorial">Tutorial/How-to</SelectItem>
+                      <SelectItem value="case-study">Case Study</SelectItem>
+                      <SelectItem value="product-launch">Product Launch</SelectItem>
+                      <SelectItem value="event">Event/Promotion</SelectItem>
+                      <SelectItem value="industry-trend">Industry Trend</SelectItem>
+                      <SelectItem value="behind-scenes">Behind the Scenes</SelectItem>
+                      <SelectItem value="achievement">Achievement/Milestone</SelectItem>
+                      <SelectItem value="poll">Poll/Survey</SelectItem>
+                      <SelectItem value="infographic">Infographic/Stats</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="keyPoints">Key Points</Label>
-                <Textarea
-                  id="keyPoints"
-                  placeholder="Any specific points you want to include?"
-                  value={formData.keyPoints}
-                  onChange={(e) => handleInputChange('keyPoints', e.target.value)}
-                  className="border-2 border-gray-200 focus:border-blue-500 transition-colors min-h-20"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="keyPoints">Key Points</Label>
+                  <Textarea
+                    id="keyPoints"
+                    placeholder="Any specific points you want to include?"
+                    value={formData.keyPoints}
+                    onChange={(e) => handleInputChange('keyPoints', e.target.value)}
+                    className="border-2 border-gray-200 focus:border-blue-500 transition-colors min-h-20"
+                  />
+                </div>
 
-              <Button 
-                onClick={generateContent}
-                disabled={isGenerating}
-                className="w-full bg-gray-900 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
-              >
-                {isGenerating ? (
+                <Button 
+                  onClick={generateContent}
+                  disabled={isGenerating}
+                  className="w-full bg-gray-900 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
+                >
+                  {isGenerating ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generate Content
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300">
+              <CardHeader className="pb-3 pt-4 px-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  Generated Content
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                {generatedContent ? (
                   <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
+                    {/* Twitter Card */}
+                    <Card className="shadow-md border-2 border-blue-200">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-semibold text-gray-700">Twitter Version</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {isImageLoading.twitter ? (
+                          <div className="w-full flex justify-center mb-2">
+                            <RefreshCw className="animate-spin w-8 h-8 text-blue-400" />
+                          </div>
+                        ) : (generatedContent.imageUrlTwitter ? (
+                          <div className="w-full flex flex-col items-center mb-2">
+                            <img src={generatedContent.imageUrlTwitter} alt="Generated for Twitter" className="rounded-lg max-h-48 object-contain" />
+                            {generatedContent.imageTwitter && (
+                              <span className="block mt-2 text-xs text-gray-700 italic">{generatedContent.imageTwitter}</span>
+                            )}
+                          </div>
+                        ) : null)}
+                        <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                          {generatedContent.twitter}
+                        </p>
+                        <div className="mt-2 mb-2">
+                          <span className="text-xs text-teal-700 font-semibold">Suggested Image:</span>
+                          <span className="ml-2 text-xs text-gray-700">{generatedContent.imageTwitter}</span>
+                        </div>
+                        <div className="mt-4 space-y-1">
+                          <div className="flex items-center gap-2 text-blue-600 text-sm">
+                            <Clock className="w-4 h-4" />
+                            <span>Best time to post:</span>
+                            <span className="font-bold text-gray-800 ml-1">{generatedContent.bestTimeTwitter}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-blue-600 text-sm">
+                            <Users className="w-4 h-4" />
+                            <span>Estimated reach:</span>
+                            <span className="font-bold text-gray-800 ml-1">{generatedContent.expectedReachTwitter}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* LinkedIn Card */}
+                    <Card className="shadow-md border-2 border-blue-700">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-semibold text-gray-700">LinkedIn Version</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {isImageLoading.linkedin ? (
+                          <div className="w-full flex justify-center mb-2">
+                            <RefreshCw className="animate-spin w-8 h-8 text-blue-700" />
+                          </div>
+                        ) : (generatedContent.imageUrlLinkedin ? (
+                          <div className="w-full flex flex-col items-center mb-2">
+                            <img src={generatedContent.imageUrlLinkedin} alt="Generated for LinkedIn" className="rounded-lg max-h-48 object-contain" />
+                            {generatedContent.imageLinkedin && (
+                              <span className="block mt-2 text-xs text-gray-700 italic">{generatedContent.imageLinkedin}</span>
+                            )}
+                          </div>
+                        ) : null)}
+                        <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                          {generatedContent.linkedin}
+                        </p>
+                        <div className="mt-2 mb-2">
+                          <span className="text-xs text-teal-700 font-semibold">Suggested Image:</span>
+                          <span className="ml-2 text-xs text-gray-700">{generatedContent.imageLinkedin}</span>
+                        </div>
+                        <div className="mt-4 space-y-1">
+                          <div className="flex items-center gap-2 text-blue-600 text-sm">
+                            <Clock className="w-4 h-4" />
+                            <span>Best time to post:</span>
+                            <span className="font-bold text-gray-800 ml-1">{generatedContent.bestTimeLinkedin}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-blue-600 text-sm">
+                            <Users className="w-4 h-4" />
+                            <span>Estimated reach:</span>
+                            <span className="font-bold text-gray-800 ml-1">{generatedContent.expectedReachLinkedin}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <div className="flex gap-3">
+                      <Button 
+                        onClick={generateContent}
+                        disabled={isGenerating}
+                        variant="outline"
+                        className="border-2 border-blue-200 hover:bg-blue-50 transition-all duration-200"
+                      >
+                        {isGenerating ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="h-4 w-4" />
+                            Regenerate
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    <div className="border-t pt-6">
+                      <Label className="text-lg font-semibold text-gray-700 mb-4 block">
+                        Share Your Content
+                      </Label>
+                      <div className="flex flex-col gap-4">
+                        <div className="space-y-4">
+                          <Button 
+                            onClick={() => handlePost('linkedin', 'aniket')}
+                            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
+                          >
+                            <Linkedin className="mr-2 h-4 w-4" /> Post on LinkedIn
+                          </Button>
+                          <Button 
+                            onClick={() => handlePost('twitter', 'aniket')}
+                            className="w-full bg-blue-400 hover:bg-blue-500 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
+                          >
+                            <Twitter className="mr-2 h-4 w-4" /> Post on Twitter
+                          </Button>
+                        </div>
+
+                      </div>
+                    </div>
                   </>
                 ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Generate Content
-                  </>
+                  <div className="text-center py-12">
+                    <Sparkles className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 text-lg">
+                      Generate your first piece of content to get started!
+                    </p>
+                  </div>
                 )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Generated Content */}
-          <Card className="shadow-xl border-2 border-gray-100 bg-white">
-            <CardHeader className="bg-gray-900 text-white rounded-t-lg">
-              <CardTitle className="flex items-center gap-2 text-xl font-bold">
-                Generated Content
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              {generatedContent ? (
-                <>
-                  {/* Twitter Card */}
-                  <Card className="shadow-md border-2 border-blue-200">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-semibold text-gray-700">Twitter Version</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {isImageLoading.twitter ? (
-                        <div className="w-full flex justify-center mb-2">
-                          <RefreshCw className="animate-spin w-8 h-8 text-blue-400" />
-                        </div>
-                      ) : (generatedContent.imageUrlTwitter ? (
-                        <div className="w-full flex flex-col items-center mb-2">
-                          <img src={generatedContent.imageUrlTwitter} alt="Generated for Twitter" className="rounded-lg max-h-48 object-contain" />
-                          {generatedContent.imageTwitter && (
-                            <span className="block mt-2 text-xs text-gray-700 italic">{generatedContent.imageTwitter}</span>
-                          )}
-                        </div>
-                      ) : null)}
-                      <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
-                        {generatedContent.twitter}
-                      </p>
-                      <div className="mt-2 mb-2">
-                        <span className="text-xs text-teal-700 font-semibold">Suggested Image:</span>
-                        <span className="ml-2 text-xs text-gray-700">{generatedContent.imageTwitter}</span>
-                      </div>
-                      <div className="mt-4 space-y-1">
-                        <div className="flex items-center gap-2 text-blue-600 text-sm">
-                          <Clock className="w-4 h-4" />
-                          <span>Best time to post:</span>
-                          <span className="font-bold text-gray-800 ml-1">{generatedContent.bestTimeTwitter}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-blue-600 text-sm">
-                          <Users className="w-4 h-4" />
-                          <span>Estimated reach:</span>
-                          <span className="font-bold text-gray-800 ml-1">{generatedContent.expectedReachTwitter}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* LinkedIn Card */}
-                  <Card className="shadow-md border-2 border-blue-700">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-semibold text-gray-700">LinkedIn Version</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {isImageLoading.linkedin ? (
-                        <div className="w-full flex justify-center mb-2">
-                          <RefreshCw className="animate-spin w-8 h-8 text-blue-700" />
-                        </div>
-                      ) : (generatedContent.imageUrlLinkedin ? (
-                        <div className="w-full flex flex-col items-center mb-2">
-                          <img src={generatedContent.imageUrlLinkedin} alt="Generated for LinkedIn" className="rounded-lg max-h-48 object-contain" />
-                          {generatedContent.imageLinkedin && (
-                            <span className="block mt-2 text-xs text-gray-700 italic">{generatedContent.imageLinkedin}</span>
-                          )}
-                        </div>
-                      ) : null)}
-                      <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
-                        {generatedContent.linkedin}
-                      </p>
-                      <div className="mt-2 mb-2">
-                        <span className="text-xs text-teal-700 font-semibold">Suggested Image:</span>
-                        <span className="ml-2 text-xs text-gray-700">{generatedContent.imageLinkedin}</span>
-                      </div>
-                      <div className="mt-4 space-y-1">
-                        <div className="flex items-center gap-2 text-blue-600 text-sm">
-                          <Clock className="w-4 h-4" />
-                          <span>Best time to post:</span>
-                          <span className="font-bold text-gray-800 ml-1">{generatedContent.bestTimeLinkedin}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-blue-600 text-sm">
-                          <Users className="w-4 h-4" />
-                          <span>Estimated reach:</span>
-                          <span className="font-bold text-gray-800 ml-1">{generatedContent.expectedReachLinkedin}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <div className="flex gap-3">
-                    <Button 
-                      onClick={generateContent}
-                      disabled={isGenerating}
-                      variant="outline"
-                      className="border-2 border-blue-200 hover:bg-blue-50 transition-all duration-200"
-                    >
-                      {isGenerating ? (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="h-4 w-4" />
-                          Regenerate
-                        </>
-                      )}
-                    </Button>
-                  </div>
-
-                  <div className="border-t pt-6">
-                    <Label className="text-lg font-semibold text-gray-700 mb-4 block">
-                      Share Your Content
-                    </Label>
-                    <div className="flex flex-col gap-4">
-                      <div className="space-y-4">
-                        <Button 
-                          onClick={() => handlePost('linkedin', 'aniket')}
-                          className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
-                        >
-                          <Linkedin className="mr-2 h-4 w-4" /> Post on LinkedIn
-                        </Button>
-                        <Button 
-                          onClick={() => handlePost('twitter', 'aniket')}
-                          className="w-full bg-blue-400 hover:bg-blue-500 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
-                        >
-                          <Twitter className="mr-2 h-4 w-4" /> Post on Twitter
-                        </Button>
-                      </div>
-
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-12">
-                  <Sparkles className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 text-lg">
-                    Generate your first piece of content to get started!
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        <div className="mt-16 text-center">
-          <div className="flex justify-center gap-3 mb-4">
-            <Badge variant="secondary" className="bg-gray-900 text-white border-2 border-gray-900 px-4 py-1.5 text-sm font-semibold">AI-Powered</Badge>
-            <Badge variant="secondary" className="bg-gray-900 text-white border-2 border-gray-900 px-4 py-1.5 text-sm font-semibold">Human-like</Badge>
-            <Badge variant="secondary" className="bg-gray-900 text-white border-2 border-gray-900 px-4 py-1.5 text-sm font-semibold">Multi-Platform</Badge>
+        <div className="mt-12 text-center">
+          <div className="flex justify-center gap-2 mb-4">
+            {['AI-Powered', 'Human-like', 'Multi-Platform'].map((badge, index) => (
+              <Badge 
+                key={index}
+                variant="secondary" 
+                className="bg-gray-900 text-white border border-gray-900 px-3 py-1 text-xs font-semibold hover:bg-gray-800 transition-colors duration-300"
+              >
+                {badge}
+              </Badge>
+            ))}
           </div>
-          <p className="text-gray-600 font-medium">
+          <p className="text-gray-600 text-sm font-medium">
             Powered by NeuralArc AI • Built for content creators
           </p>
         </div>
