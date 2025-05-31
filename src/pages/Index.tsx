@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, RefreshCw, Twitter, Linkedin, Wand2, SettingsIcon, Clock, Heart, Users, Search, ArrowUpRight, X } from "lucide-react";
+import { Sparkles, RefreshCw, Twitter, Linkedin, Wand2, SettingsIcon, Clock, Heart, Users, Search, ArrowUpRight, X, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { initiateTwitterAuth, initiateLinkedInAuth, postToLinkedIn, postToTwitter, testLinkedInToken } from '@/lib/social-service';
@@ -143,6 +143,47 @@ const TrendingUpIcon = () => (
   </svg>
 );
 
+// Add these styles at the top of the file, after imports
+const styles = `
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  .pin-modal {
+    animation: fadeIn 0.3s ease-out;
+  }
+  .pin-modal.shake {
+    animation: shake 0.5s ease-in-out;
+  }
+  .lock-icon {
+    animation: pulse 2s infinite;
+  }
+  .pin-input {
+    transition: all 0.2s ease;
+  }
+  .pin-input:focus {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  .pin-input.filled {
+    background: linear-gradient(145deg, #ffffff, #f3f4f6);
+  }
+  .pin-input.error {
+    border-color: #ef4444;
+    background: #fef2f2;
+  }
+`;
+
 const Index = () => {
   const [formData, setFormData] = useState({
     topic: '',
@@ -239,6 +280,38 @@ const Index = () => {
   const [expectedPosts, setExpectedPosts] = useState(0);
   const [customImagePrompt, setCustomImagePrompt] = useState("");
   const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(true);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [shakeModal, setShakeModal] = useState(false);
+  const [filledInputs, setFilledInputs] = useState<boolean[]>([false, false, false, false]);
+
+  // For 4-digit PIN input
+  const pinDigits = [0, 1, 2, 3];
+  const pinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+
+  const handlePinDigitChange = (idx: number, val: string) => {
+    if (!/^[0-9]?$/.test(val)) return;
+    const newPin = pinInput.split("");
+    newPin[idx] = val;
+    const pinStr = newPin.join("").padEnd(4, "");
+    setPinInput(pinStr);
+    setPinError("");
+    
+    // Update filled state
+    const newFilledInputs = [...filledInputs];
+    newFilledInputs[idx] = !!val;
+    setFilledInputs(newFilledInputs);
+    
+    if (val && idx < 3) {
+      pinRefs[idx + 1].current?.focus();
+    }
+  };
+  const handlePinBoxKeyDown = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !pinInput[idx] && idx > 0) {
+      pinRefs[idx - 1].current?.focus();
+    }
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -574,9 +647,9 @@ const Index = () => {
 - platform: (LinkedIn or Twitter)
 - title: (catchy, max 60 chars)
 - content: (for LinkedIn: detailed, multi-paragraph, professional, 800-1500 characters, and must start with a heading in the format 'Heading: ...' on the first line, then a blank line, then the body; for Twitter: concise, max 280 characters)
-- reach: (e.g. 3K - 11K)
-- likes: (number)
-- comments: (number)
+- reach: (a number between 300 and 500)
+- likes: (a number between 20 and 45)
+- comments: (a number between 5 and 10)
 - shares: (number)
 - hashtags: (array of 2-4 relevant hashtags)
 - score: (as a percentage, e.g. 94)
@@ -800,290 +873,353 @@ Format the response as a JSON array of objects with these keys: platform, title,
     }
   };
 
+  const handlePinSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (pinInput === "1111") {
+      setShowPinModal(false);
+      setPinError("");
+      setShakeModal(false);
+    } else {
+      setPinError("Incorrect PIN. Please try again.");
+      setShakeModal(true);
+      setTimeout(() => setShakeModal(false), 500);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
-      <div className="max-w-[1600px] w-full mx-auto px-2 sm:px-4">
-        <div className="text-center mt-2 mt-9">
-          <div className="flex items-center justify-center mb-4">
-            <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent">
-              Social Spark
-            </h1>
-          </div>
-          <p className="text-gray-400 mb-8 text-lg">
-            AI-powered social media content generator
-          </p>
-        </div>
-        {/* Trending Topics Section */}
-        <div className="mb-8 bg-white rounded-2xl shadow p-6 border border-gray-100">
-          <div className="mb-4 flex items-center gap-2">
-            <Search className="w-5 h-5 text-gray-700" />
-            <span className="text-xl font-semibold text-gray-900">Industry Trend Discovery</span>
+    <>
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-black/70 to-black/50 backdrop-blur-sm">
+          <style>{styles}</style>
+          <form 
+            onSubmit={handlePinSubmit} 
+            className={`pin-modal bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-2xl p-8 flex flex-col items-center min-w-[360px] ${shakeModal ? 'shake' : ''}`}
+          >
+            <div className="relative mb-6">
+              <div className="absolute inset-0 bg-blue-500/10 rounded-full blur-xl"></div>
+              <Lock className="lock-icon w-10 h-10 text-blue-600 relative z-10" />
+            </div>
+            
+            <h2 className="text-2xl font-bold mb-6 tracking-wide bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              Enter Security PIN
+            </h2>
+            
+            <div className="flex gap-4 mb-6">
+              {pinDigits.map((_, idx) => (
+                <input
+                  key={idx}
+                  ref={pinRefs[idx]}
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={1}
+                  className={`pin-input w-14 h-16 text-center text-3xl border-2 rounded-xl outline-none transition-all duration-200
+                    ${pinError ? 'error' : 'border-gray-200 hover:border-blue-300'}
+                    ${filledInputs[idx] ? 'filled' : ''}
+                    focus:border-blue-500 bg-white font-mono shadow-sm`}
+                  value={pinInput[idx] || ""}
+                  onChange={e => handlePinDigitChange(idx, e.target.value)}
+                  onKeyDown={e => handlePinBoxKeyDown(idx, e)}
+                  autoFocus={idx === 0}
+                />
+              ))}
+            </div>
+            
+            {pinError && (
+              <div className="text-red-500 text-sm mb-4 font-medium flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {pinError}
               </div>
-          <div className="flex gap-2 mb-2">
+            )}
+            
+            <Button 
+              type="submit" 
+              className="w-full mt-2 text-lg py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+            >
+              Verify PIN
+            </Button>
+            
+            <p className="text-xs text-gray-500 mt-4">
+              Enter the 4-digit PIN to access the application
+            </p>
+          </form>
+        </div>
+      )}
+      {!showPinModal && (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+          <div className="max-w-[1600px] w-full mx-auto px-2 sm:px-4">
+            <div className="text-center mt-2 mt-9">
+              <div className="flex items-center justify-center mb-4">
+                <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent">
+                  Social Spark
+                </h1>
+              </div>
+              <p className="text-gray-400 mb-8 text-lg">
+                AI-powered social media content generator
+              </p>
+            </div>
+            {/* Trending Topics Section */}
+            <div className="mb-8 bg-white rounded-2xl shadow p-6 border border-gray-100">
+              <div className="mb-4 flex items-center gap-2">
+                <Search className="w-5 h-5 text-gray-700" />
+                <span className="text-xl font-semibold text-gray-900">Industry Trend Discovery</span>
+              </div>
+              <div className="flex gap-2 mb-2">
                 <Input
-              value={searchValue}
-              onChange={e => setSearchValue(e.target.value)}
-              placeholder="What are you looking for?"
-              className="flex-1 rounded-lg border border-gray-200 focus:border-blue-500 px-4 py-2 text-base shadow-none"
-              style={{ minHeight: 44 }}
-            />
-            <Button
-              className="bg-black text-white rounded-lg px-6 text-base h-11"
-              style={{ minHeight: 44 }}
-              onClick={handleSearch}
-              disabled={isSearching}
-            >
-              {isSearching ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}Generate
-            </Button>
-            <Button
-              variant="outline"
-              className="border-2 border-gray-200 rounded-lg px-6 text-base h-11"
-              style={{ minHeight: 44 }}
-              onClick={handleRefreshTrending}
-            >
-              <ArrowUpRight className="w-4 h-4 mr-2" />Refresh
-            </Button>
-              </div>
-          <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2 mt-4">Trending Topics</div>
-          <div className="flex flex-wrap gap-3">
-            {trendingTopics.map(topic => (
-              <button
-                key={topic}
-                type="button"
-                onClick={() => { setSearchValue(topic); setSelectedTopic(topic); }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full border text-base font-medium transition-colors
-                  ${selectedTopic === topic ? 'bg-black text-white border-black shadow' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'}
-                `}
-                style={{ minWidth: 0 }}
-              >
-                <TrendingUpIcon />
-                {topic}
-              </button>
-            ))}
-              </div>
-              </div>
-
-        {/* Render generated posts as cards below trending section */}
-        {(generatedPosts.length > 0 || expectedPosts > 0) && (
-          <div className="mb-10">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-2xl font-semibold text-black">Generated Posts for "{searchValue}"</span>
-              <div className="flex gap-2 items-center">
-                <span className="text-gray-500 text-sm">{generatedPosts.length} posts created</span>
-                <Button variant="outline" size="sm" onClick={handleRefreshPosts} disabled={isSearching}>
-                  <RefreshCw className="w-4 h-4 mr-1" /> Refresh
+                  value={searchValue}
+                  onChange={e => setSearchValue(e.target.value)}
+                  placeholder="What are you looking for?"
+                  className="flex-1 rounded-lg border border-gray-200 focus:border-blue-500 px-4 py-2 text-base shadow-none"
+                  style={{ minHeight: 44 }}
+                />
+                <Button
+                  className="bg-black text-white rounded-lg px-6 text-base h-11"
+                  style={{ minHeight: 44 }}
+                  onClick={handleSearch}
+                  disabled={isSearching}
+                >
+                  {isSearching ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}Generate
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleClearPosts}>
-                  Clear
+                <Button
+                  variant="outline"
+                  className="border-2 border-gray-200 rounded-lg px-6 text-base h-11"
+                  style={{ minHeight: 44 }}
+                  onClick={handleRefreshTrending}
+                >
+                  <ArrowUpRight className="w-4 h-4 mr-2" />Refresh
                 </Button>
               </div>
+              <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2 mt-4">Trending Topics</div>
+              <div className="flex flex-wrap gap-3">
+                {trendingTopics.map(topic => (
+                  <button
+                    key={topic}
+                    type="button"
+                    onClick={() => { setSearchValue(topic); setSelectedTopic(topic); }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full border text-base font-medium transition-colors
+                      ${selectedTopic === topic ? 'bg-black text-white border-black shadow' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'}
+                    `}
+                    style={{ minWidth: 0 }}
+                  >
+                    <TrendingUpIcon />
+                    {topic}
+                  </button>
+                ))}
               </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              {generatedPosts.map((post, idx) => (
-                <div key={idx} className="bg-white rounded-xl shadow border border-gray-100 p-6 flex flex-col gap-2 min-h-[220px] max-w-[370px] mx-auto cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick(post)}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${post.platform === 'LinkedIn' ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-900'}`}>{post.platform}</span>
-                    <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">{post.score}% Score</span>
-                        </div>
-                  <div className="font-bold text-base text-gray-900 mb-1">{post.title}</div>
-                  <div className="text-gray-700 text-sm mb-2 line-clamp-2">{post.content}</div>
-                  <div className="flex items-center gap-4 text-xs mb-2">
-                    <span className="flex items-center gap-1 text-blue-700 font-semibold"><span role="img" aria-label="reach">👁️</span>{post.reach}</span>
-                    <span className="flex items-center gap-1 text-red-500 font-semibold"><span role="img" aria-label="likes">❤️</span>{post.likes}</span>
-                    <span className="flex items-center gap-1 text-green-600 font-semibold"><span role="img" aria-label="comments">💬</span>{post.comments}</span>
-                      </div>
-                  <div className="text-xs text-gray-400 mt-auto">Created: {post.created}</div>
-                        </div>
-              ))}
-              {/* Skeleton cards for posts still processing */}
-              {Array.from({ length: Math.max(0, expectedPosts - generatedPosts.length) }).map((_, idx) => (
-                <div key={`skeleton-${idx}`} className="bg-gray-100 rounded-xl shadow border border-gray-200 p-6 flex flex-col gap-2 min-h-[220px] max-w-[370px] mx-auto animate-pulse">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="h-5 w-20 bg-gray-300 rounded-full" />
-                    <div className="h-5 w-16 bg-gray-300 rounded-full" />
-                  </div>
-                  <div className="h-6 w-3/4 bg-gray-300 rounded mb-1" />
-                  <div className="h-4 w-full bg-gray-200 rounded mb-2" />
-                  <div className="flex items-center gap-4 text-xs mb-2">
-                    <div className="h-4 w-12 bg-gray-200 rounded-full" />
-                    <div className="h-4 w-10 bg-gray-200 rounded-full" />
-                    <div className="h-4 w-10 bg-gray-200 rounded-full" />
-                  </div>
-                  <div className="h-4 w-1/2 bg-gray-200 rounded mt-auto" />
-                </div>
-              ))}
             </div>
+
+            {/* Render generated posts as cards below trending section */}
+            {(generatedPosts.length > 0 || expectedPosts > 0) && (
+              <div className="mb-10">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-2xl font-semibold text-black">Generated Posts for "{searchValue}"</span>
+                  <div className="flex gap-2 items-center">
+                    <span className="text-gray-500 text-sm">{generatedPosts.length} posts created</span>
+                    <Button variant="outline" size="sm" onClick={handleRefreshPosts} disabled={isSearching}>
+                      <RefreshCw className="w-4 h-4 mr-1" /> Refresh
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleClearPosts}>
+                      Clear
+                    </Button>
+                  </div>
                 </div>
-              )}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  {generatedPosts.map((post, idx) => (
+                    <div key={idx} className="bg-white rounded-xl shadow border border-gray-100 p-6 flex flex-col gap-2 min-h-[220px] max-w-[370px] mx-auto cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick(post)}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${post.platform === 'LinkedIn' ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-900'}`}>{post.platform}</span>
+                        <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">{post.score}% Score</span>
+                      </div>
+                      <div className="font-bold text-base text-gray-900 mb-1">{post.title}</div>
+                      <div className="text-gray-700 text-sm mb-2 line-clamp-2">{post.content}</div>
+                      <div className="flex items-center gap-4 text-xs mb-2">
+                        <span className="flex items-center gap-1 text-blue-700 font-semibold"><span role="img" aria-label="reach">👁️</span>{post.reach}</span>
+                        <span className="flex items-center gap-1 text-red-500 font-semibold"><span role="img" aria-label="likes">❤️</span>{post.likes}</span>
+                        <span className="flex items-center gap-1 text-green-600 font-semibold"><span role="img" aria-label="comments">💬</span>{post.comments}</span>
+                      </div>
+                      <div className="text-xs text-gray-400 mt-auto">Created: {post.created}</div>
+                    </div>
+                  ))}
+                  {/* Skeleton cards for posts still processing */}
+                  {Array.from({ length: Math.max(0, expectedPosts - generatedPosts.length) }).map((_, idx) => (
+                    <div key={`skeleton-${idx}`} className="bg-gray-100 rounded-xl shadow border border-gray-200 p-6 flex flex-col gap-2 min-h-[220px] max-w-[370px] mx-auto animate-pulse">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="h-5 w-20 bg-gray-300 rounded-full" />
+                        <div className="h-5 w-16 bg-gray-300 rounded-full" />
+                      </div>
+                      <div className="h-6 w-3/4 bg-gray-300 rounded mb-1" />
+                      <div className="h-4 w-full bg-gray-200 rounded mb-2" />
+                      <div className="flex items-center gap-4 text-xs mb-2">
+                        <div className="h-4 w-12 bg-gray-200 rounded-full" />
+                        <div className="h-4 w-10 bg-gray-200 rounded-full" />
+                        <div className="h-4 w-10 bg-gray-200 rounded-full" />
+                      </div>
+                      <div className="h-4 w-1/2 bg-gray-200 rounded mt-auto" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        <div className="mt-12 text-center">
-          <div className="flex justify-center gap-2 mb-4">
-            <Badge variant="secondary" className="bg-black text-white">AI-Powered</Badge>
-            <Badge variant="secondary" className="bg-black text-white">Human-like</Badge>
-            <Badge variant="secondary" className="bg-black text-white">Multi-Platform</Badge>
-          </div>
-          <p className="text-gray-600">
-            Powered by NeuralArc AI • Built for content creators
-          </p>
-        </div>
+            <div className="mt-12 text-center">
+              <div className="flex justify-center gap-2 mb-4">
+                <Badge variant="secondary" className="bg-black text-white">AI-Powered</Badge>
+                <Badge variant="secondary" className="bg-black text-white">Human-like</Badge>
+                <Badge variant="secondary" className="bg-black text-white">Multi-Platform</Badge>
+              </div>
+              <p className="text-gray-600">
+                Powered by NeuralArc AI • Built for content creators
+              </p>
+            </div>
 
-        {/* Modal for post details */}
-        {isModalOpen && selectedPost && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full mx-2 p-0 relative flex flex-col">
-              {/* Close button */}
-              <button className="absolute top-4 right-4 text-gray-400 hover:text-black" onClick={handleCloseModal}><X className="w-6 h-6" /></button>
-              {/* Header */}
-              <div className="flex flex-row items-center gap-3 px-8 pt-8 pb-2">
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${selectedPost.platform === 'LinkedIn' ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-900'}`}>{selectedPost.platform}</span>
-                <span className="font-bold text-xl text-gray-900">{selectedPost.title}</span>
+            {/* Modal for post details */}
+            {isModalOpen && selectedPost && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full mx-2 p-0 relative flex flex-col">
+                  {/* Close button */}
+                  <button className="absolute top-4 right-4 text-gray-400 hover:text-black" onClick={handleCloseModal}><X className="w-6 h-6" /></button>
+                  {/* Header */}
+                  <div className="flex flex-row items-center gap-3 px-8 pt-8 pb-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${selectedPost.platform === 'LinkedIn' ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-900'}`}>{selectedPost.platform}</span>
+                    <span className="font-bold text-xl text-gray-900">{selectedPost.title}</span>
+                  </div>
+                  <div className="flex flex-col md:flex-row gap-6 px-8 pb-6">
+                    {/* Left: Post Content & Metrics */}
+                    <div className="flex-1 min-w-[260px]">
+                      <div className="font-semibold text-base text-gray-900 mb-2 mt-2">Post Content</div>
+                      <div className="bg-gray-50 rounded-lg p-4 text-gray-800 text-sm mb-4 whitespace-pre-line h-64 overflow-y-auto">
+                        {selectedPost.platform === 'LinkedIn' ? (
+                          (() => {
+                            // Expecting format: Heading: ...\n\nBody...
+                            const match = selectedPost.content.match(/^Heading:\s*(.*)\n\n([\s\S]*)/);
+                            if (match) {
+                              return <>
+                                <div className="font-bold text-base mb-2">{match[1]}</div>
+                                <div>{match[2]}</div>
+                              </>;
+                            } else {
+                              return <>{selectedPost.content}</>;
+                            }
+                          })()
+                        ) : (
+                          <>{selectedPost.content}</>
+                        )}
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {selectedPost.hashtags && selectedPost.hashtags.map((tag, i) => (
+                            <span key={i} className="bg-white border border-gray-300 text-gray-900 px-3 py-1 rounded-full text-xs font-semibold">{tag}</span>
+                          ))}
                         </div>
-              <div className="flex flex-col md:flex-row gap-6 px-8 pb-6">
-                {/* Left: Post Content & Metrics */}
-                <div className="flex-1 min-w-[260px]">
-                  <div className="font-semibold text-base text-gray-900 mb-2 mt-2">Post Content</div>
-                  <div className="bg-gray-50 rounded-lg p-4 text-gray-800 text-sm mb-4 whitespace-pre-line h-64 overflow-y-auto">
-                    {selectedPost.platform === 'LinkedIn' ? (
-                      (() => {
-                        // Expecting format: Heading: ...\n\nBody...
-                        const match = selectedPost.content.match(/^Heading:\s*(.*)\n\n([\s\S]*)/);
-                        if (match) {
-                          return <>
-                            <div className="font-bold text-base mb-2">{match[1]}</div>
-                            <div>{match[2]}</div>
-                          </>;
-                        } else {
-                          return <>{selectedPost.content}</>;
+                      </div>
+                      <div className="font-semibold text-base text-gray-900 mb-2">Performance Metrics</div>
+                      <div className="grid grid-cols-2 gap-3 mb-2">
+                        <div className="bg-blue-50 rounded-lg p-4 flex flex-col items-start">
+                          <span className="text-xs text-blue-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='reach'>👁️</span> Reach</span>
+                          <span className="text-xl font-bold text-blue-900">{selectedPost.reach}</span>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-4 flex flex-col items-start">
+                          <span className="text-xs text-green-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='engagement'>↗️</span> Engagement</span>
+                          <span className="text-xl font-bold text-green-900">{selectedPost.engagementPotential}%</span>
+                        </div>
+                        <div className="bg-red-50 rounded-lg p-4 flex flex-col items-start">
+                          <span className="text-xs text-red-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='likes'>❤️</span> Likes</span>
+                          <span className="text-xl font-bold text-red-900">{selectedPost.likes}</span>
+                        </div>
+                        <div className="bg-purple-50 rounded-lg p-4 flex flex-col items-start">
+                          <span className="text-xs text-purple-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='shares'>🔄</span> Shares</span>
+                          <span className="text-xl font-bold text-purple-900">{selectedPost.shares}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Right: AI Insights & Contacts */}
+                    <div className="flex-1 min-w-[220px] flex flex-col gap-4 mt-2">
+                      <div>
+                        <div className="font-semibold text-base text-gray-900 mb-2">AI Insights</div>
+                        <div className="mb-4">
+                          <div className="flex items-center justify-between mb-1 text-xs">
+                            <span>Engagement Potential</span>
+                            <span className="font-bold">{selectedPost.engagementPotential}%</span>
+                          </div>
+                          <div className="w-full h-2 bg-gray-200 rounded-full mb-2">
+                            <div className="h-2 bg-black rounded-full" style={{ width: `${selectedPost.engagementPotential}%` }}></div>
+                          </div>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-3 flex items-center gap-2 mb-4">
+                          <Clock className="w-4 h-4 text-yellow-700" />
+                          <span className="text-xs text-gray-900 font-semibold">Best Time to Post</span>
+                          <span className="text-xs text-gray-700 ml-auto">{selectedPost.bestTime}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-base text-gray-900 mb-2">Interested Contacts</div>
+                        <div className="flex flex-col gap-2">
+                          <div className="bg-gray-50 rounded-lg px-3 py-3 border border-gray-200 flex flex-col gap-2 mb-2">
+                            <div className="text-xs text-gray-500">Target Area</div>
+                            <div className="font-semibold text-sm text-gray-900">{selectedPost.targetArea}</div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-xs text-gray-500">% of people likely to like this post:</span>
+                              <span className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded-full text-xs font-semibold">{selectedPost.likePercentage}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Generated Image Section */}
+                    <div className="flex flex-col items-center mt-2 mb-4">
+                      <div
+                        className={
+                          selectedPost.platform === 'Twitter'
+                            ? 'w-40 h-40 flex items-center justify-center bg-white rounded-lg overflow-hidden border border-gray-200'
+                            : 'w-36 h-48 flex items-center justify-center bg-white rounded-lg overflow-hidden border border-gray-200'
                         }
-                      })()
-                    ) : (
-                      <>{selectedPost.content}</>
-                    )}
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {selectedPost.hashtags && selectedPost.hashtags.map((tag, i) => (
-                        <span key={i} className="bg-white border border-gray-300 text-gray-900 px-3 py-1 rounded-full text-xs font-semibold">{tag}</span>
-                      ))}
-                        </div>
-                      </div>
-                  <div className="font-semibold text-base text-gray-900 mb-2">Performance Metrics</div>
-                  <div className="grid grid-cols-2 gap-3 mb-2">
-                    <div className="bg-blue-50 rounded-lg p-4 flex flex-col items-start">
-                      <span className="text-xs text-blue-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='reach'>👁️</span> Reach</span>
-                      <span className="text-xl font-bold text-blue-900">{selectedPost.reach}</span>
-                        </div>
-                    <div className="bg-green-50 rounded-lg p-4 flex flex-col items-start">
-                      <span className="text-xs text-green-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='engagement'>↗️</span> Engagement</span>
-                      <span className="text-xl font-bold text-green-900">{selectedPost.engagementPotential}%</span>
-                        </div>
-                    <div className="bg-red-50 rounded-lg p-4 flex flex-col items-start">
-                      <span className="text-xs text-red-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='likes'>❤️</span> Likes</span>
-                      <span className="text-xl font-bold text-red-900">{selectedPost.likes}</span>
-                      </div>
-                    <div className="bg-purple-50 rounded-lg p-4 flex flex-col items-start">
-                      <span className="text-xs text-purple-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='shares'>🔄</span> Shares</span>
-                      <span className="text-xl font-bold text-purple-900">{selectedPost.shares}</span>
-                        </div>
-                        </div>
-                      </div>
-                {/* Right: AI Insights & Contacts */}
-                <div className="flex-1 min-w-[220px] flex flex-col gap-4 mt-2">
-                  <div>
-                    <div className="font-semibold text-base text-gray-900 mb-2">AI Insights</div>
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-1 text-xs">
-                        <span>Engagement Potential</span>
-                        <span className="font-bold">{selectedPost.engagementPotential}%</span>
-                        </div>
-                      <div className="w-full h-2 bg-gray-200 rounded-full mb-2">
-                        <div className="h-2 bg-black rounded-full" style={{ width: `${selectedPost.engagementPotential}%` }}></div>
-                        </div>
-                      </div>
-                    <div className="bg-gray-50 rounded-lg p-3 flex items-center gap-2 mb-4">
-                      <Clock className="w-4 h-4 text-yellow-700" />
-                      <span className="text-xs text-gray-900 font-semibold">Best Time to Post</span>
-                      <span className="text-xs text-gray-700 ml-auto">{selectedPost.bestTime}</span>
-                  </div>
-                      </div>
-                  <div>
-                    <div className="font-semibold text-base text-gray-900 mb-2">Interested Contacts</div>
-                    <div className="flex flex-col gap-2">
-                      <div className="bg-gray-50 rounded-lg px-3 py-3 border border-gray-200 flex flex-col gap-2 mb-2">
-                        <div className="text-xs text-gray-500">Target Area</div>
-                        <div className="font-semibold text-sm text-gray-900">{selectedPost.targetArea}</div>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-xs text-gray-500">% of people likely to like this post:</span>
-                          <span className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded-full text-xs font-semibold">{selectedPost.likePercentage}%</span>
-                    </div>
-                  </div>
-                    </div>
-                  </div>
-                  {/* Generated Image Section */}
-                  <div className="flex flex-col items-center mt-2 mb-4">
-                    <div
-                      className={
-                        selectedPost.platform === 'Twitter'
-                          ? 'w-40 h-40 flex items-center justify-center bg-white rounded-lg overflow-hidden border border-gray-200'
-                          : 'w-36 h-48 flex items-center justify-center bg-white rounded-lg overflow-hidden border border-gray-200'
-                      }
-                    >
-                      <img
-                        src={selectedPost.imageUrl || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\' viewBox=\'0 0 200 200\'><rect width=\'200\' height=\'200\' fill=\'%23e5e7eb\'/><text x=\'50%\' y=\'50%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%239ca3af\' font-size=\'20\'>No Image</text></svg>'}
-                        alt="Generated for this post"
-                        className="object-cover w-full h-full"
-                      />
-                    </div>
-                    <button
-                      className="mt-2 px-4 py-1 bg-black text-white rounded hover:bg-gray-800 text-xs"
-                      onClick={() => {
-                        const link = document.createElement('a');
-                        link.href = selectedPost.imageUrl!;
-                        link.download = 'generated-image.jpg';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                      }}
-                    >
-                      Download Image (JPG)
-                    </button>
-                    <div className="flex flex-col items-center gap-2 mt-3 w-full">
-                      <input
-                        type="text"
-                        className="w-full px-3 py-1 border border-gray-300 rounded text-xs"
-                        placeholder="Enter custom prompt for image..."
-                        value={customImagePrompt}
-                        onChange={e => setCustomImagePrompt(e.target.value)}
-                        disabled={isRegeneratingImage}
-                      />
-                      <Button
-                        size="sm"
-                        className="mt-1"
-                        onClick={handleRegenerateImage}
-                        disabled={isRegeneratingImage}
                       >
-                        {isRegeneratingImage ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : null}
-                        Regenerate Image
-                      </Button>
+                        <img
+                          src={selectedPost.imageUrl || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\' viewBox=\'0 0 200 200\'><rect width=\'200\' height=\'200\' fill=\'%23e5e7eb\'/><text x=\'50%\' y=\'50%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%239ca3af\' font-size=\'20\'>No Image</text></svg>'}
+                          alt="Generated for this post"
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                      <button
+                        className="mt-2 px-4 py-1 bg-black text-white rounded hover:bg-gray-800 text-xs"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = selectedPost.imageUrl!;
+                          link.download = 'generated-image.jpg';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                      >
+                        Download Image (JPG)
+                      </button>
+                      <div className="flex flex-col items-center gap-2 mt-3 w-full">
+                        <input
+                          type="text"
+                          className="w-full px-3 py-1 border border-gray-300 rounded text-xs"
+                          placeholder="Enter custom prompt for image..."
+                          value={customImagePrompt}
+                          onChange={e => setCustomImagePrompt(e.target.value)}
+                          disabled={isRegeneratingImage}
+                        />
+                        <Button
+                          size="sm"
+                          className="mt-1"
+                          onClick={handleRegenerateImage}
+                          disabled={isRegeneratingImage}
+                        >
+                          {isRegeneratingImage ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : null}
+                          Regenerate Image
+                        </Button>
+                      </div>
                     </div>
                   </div>
-        </div>
+                </div>
+              </div>
+            )}
           </div>
-              {/* Footer */}
-              <div className="flex justify-end gap-2 px-8 pb-6 pt-2">
-                <Button variant="outline" onClick={handleCloseModal}>Close</Button>
-                {selectedPost.platform === 'LinkedIn' && (
-                  <Button onClick={handleCopyLinkedIn} variant="secondary">Copy</Button>
-                )}
-                <Button onClick={handleHumanizeModal} disabled={isHumanizingModal} variant="secondary">
-                  {isHumanizingModal ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Humanize
-                </Button>
-                <Button className="bg-black text-white" onClick={handleSharePost}>Share Post</Button>
         </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      )}
+    </>
   );
 };
 
