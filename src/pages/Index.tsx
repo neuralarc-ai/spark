@@ -1305,25 +1305,43 @@ Format the response as a JSON array of objects with these keys: platform, title,
                 {selectedPost.imageUrl && (
                   <div>
                     <img src={selectedPost.imageUrl} alt="Generated" className="w-full rounded-xl object-cover mb-2" style={{ maxHeight: 200 }} />
-                    {selectedPost.imageCaption && <div className="text-xs text-gray-500 text-center">{selectedPost.imageCaption}</div>}
-                </div>
-              )}
+                    {/* Custom prompt input and regenerate button */}
+                    <div className="flex flex-wrap gap-2 mt-4 mb-2 items-center min-w-0">
+                      <input
+                        type="text"
+                        value={customImagePrompt}
+                        onChange={e => setCustomImagePrompt(e.target.value)}
+                        placeholder="Enter custom prompt for image..."
+                        className="flex-1 min-w-0 border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-black bg-gray-50"
+                      />
+                      <Button
+                        onClick={handleRegenerateImage}
+                        disabled={isRegeneratingImage}
+                        className="bg-black text-white hover:bg-gray-900 px-5 py-2 whitespace-nowrap"
+                      >
+                        {isRegeneratingImage ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Regenerate Image'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               
                 <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2">
                   <div className="text-xs text-gray-500 font-semibold">AI Insights</div>
                   <div className="flex flex-col gap-1 text-sm">
                     <span>Target Area: <b>{selectedPost.targetArea}</b></span>
-          </div>
-        </div>
+                    <span>Like %: <b>{selectedPost.likePercentage}%</b></span>
+                    <span>Created: <b>{selectedPost.created}</b></span>
+                  </div>
+                </div>
                 <div className="flex gap-2 mt-2">
                   <Button onClick={handleSharePost} className="flex-1 bg-black text-white hover:bg-gray-900">Post Now</Button>
                   <Button variant="outline" onClick={handleCopyLinkedIn} className="flex-1">Copy</Button>
                   <Button variant="outline" onClick={handleHumanizeModal} className="flex-1">Humanize</Button>
-      </div>
-    </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
       )}
     </>
   );
