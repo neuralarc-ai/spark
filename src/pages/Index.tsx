@@ -69,7 +69,7 @@ async function generateImage(prompt: string, apiKey: string): Promise<{ image: s
             {
               role: "user",
               parts: [
-                { text: `Generate an image for: ${prompt}.` }
+                { text: `Read the following social media post content and generate a single, visually appealing image that perfectly represents the main idea, theme, or message of the post. The image must be in the style of Studio Ghibli (soft, whimsical, detailed, and storybook-like). Use only these colors (with different opacities): #161616, #1E342F, #2B2521, #495663, #97A487, #A8B0B8, #A9A9A9, #B7A694, #B7BEAE, #C6AEA3, #CFD2D4, #CFD4C9, #D0C3B5, #E3E2DF, #F8F7F3. The image should be highly relevant and suitable for sharing with the post on social media. Also provide a very short caption for the image (5 words or less).\n\nPost content:\n${prompt}` }
               ]
             }
           ],
@@ -236,6 +236,9 @@ const Index = () => {
   const [selectedPost, setSelectedPost] = useState<GeneratedPost | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHumanizingModal, setIsHumanizingModal] = useState(false);
+  const [expectedPosts, setExpectedPosts] = useState(0);
+  const [customImagePrompt, setCustomImagePrompt] = useState("");
+  const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -564,6 +567,7 @@ const Index = () => {
     if (!searchValue.trim()) return;
     setIsSearching(true);
     setGeneratedPosts([]);
+    setExpectedPosts(4); // We always generate 4 posts
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       const prompt = `Generate 4 social media posts (2 for LinkedIn, 2 for Twitter) for the topic: "${searchValue}". For each post, provide the following fields:
@@ -599,21 +603,24 @@ Format the response as a JSON array of objects with these keys: platform, title,
       const jsonMatch = text.match(/\[.*\]/s);
       let posts: GeneratedPost[] = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
-      // Generate images for each post
-      posts = await Promise.all(posts.map(async (post) => {
-        // Use hashtags or content as prompt
-        let imagePrompt = post.hashtags && post.hashtags.length > 0
-          ? `Create an image for a social media post about: ${post.hashtags.join(', ')}.`
-          : `Create an image for this post: ${post.content}`;
-        const imgResult = await generateImage(imagePrompt, apiKey);
-        return {
+      // Generate images for each post and display them one by one
+      for (const post of posts) {
+        let imagePrompt = post.content;
+        let imgResult = await generateImage(imagePrompt, apiKey);
+        // Retry once with a fallback prompt if image generation fails
+        if (!imgResult.image) {
+          imgResult = await generateImage('Create a visually appealing image for a social media post. ' + post.content, apiKey);
+        }
+        // Use a placeholder if still no image
+        const placeholder =
+          'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23e5e7eb"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-size="20">No Image</text></svg>';
+        const newPost = {
           ...post,
-          imageUrl: imgResult.image || '',
+          imageUrl: imgResult.image || placeholder,
           imageCaption: imgResult.caption || '',
         };
-      }));
-
-      setGeneratedPosts(posts);
+        setGeneratedPosts(prev => [...prev, newPost]);
+      }
     } catch (err) {
       setGeneratedPosts([]);
     } finally {
@@ -653,7 +660,12 @@ Format the response as a JSON array of objects with these keys: platform, title,
           description: `Posted to Twitter successfully!`,
         });
       } else {
-        await postToLinkedIn(selectedPost.content, account);
+        // For LinkedIn, append hashtags
+        let contentToShare = selectedPost.content;
+        if (selectedPost.hashtags && selectedPost.hashtags.length > 0) {
+          contentToShare += '\n\n' + selectedPost.hashtags.map(tag => tag.startsWith('#') ? tag : `#${tag.replace(/\s+/g, '')}`).join(' ');
+        }
+        await postToLinkedIn(contentToShare, account);
         toast({
           title: "Success",
           description: `Posted to LinkedIn successfully!`,
@@ -724,10 +736,71 @@ Format the response as a JSON array of objects with these keys: platform, title,
     }
   };
 
+  // Clear all generated posts
+  const handleClearPosts = () => {
+    setGeneratedPosts([]);
+    setExpectedPosts(0);
+  };
 
+  // Refresh posts for the current search value
+  const handleRefreshPosts = () => {
+    if (searchValue.trim()) {
+      handleSearch();
+    }
+  };
+
+  // Copy LinkedIn post content and hashtags to clipboard
+  const handleCopyLinkedIn = () => {
+    if (!selectedPost || selectedPost.platform !== 'LinkedIn') return;
+    // Extract heading/body for LinkedIn
+    let contentToCopy = '';
+    const match = selectedPost.content.match(/^Heading:\s*(.*)\n\n([\s\S]*)/);
+    if (match) {
+      contentToCopy = `${match[1]}\n\n${match[2]}`;
+    } else {
+      contentToCopy = selectedPost.content;
+    }
+    // Add hashtags
+    if (selectedPost.hashtags && selectedPost.hashtags.length > 0) {
+      contentToCopy += '\n\n' + selectedPost.hashtags.map(tag => tag.startsWith('#') ? tag : `#${tag.replace(/\s+/g, '')}`).join(' ');
+    }
+    navigator.clipboard.writeText(contentToCopy);
+    toast({
+      title: "Copied!",
+      description: "LinkedIn post and hashtags copied to clipboard.",
+    });
+  };
+
+  // Regenerate image for the selected post in the modal
+  const handleRegenerateImage = async () => {
+    if (!selectedPost) return;
+    setIsRegeneratingImage(true);
+    try {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      let prompt = customImagePrompt.trim() ? customImagePrompt : selectedPost.content;
+      if (selectedPost.platform === 'Twitter') {
+        prompt += '\nThe image must be square (1:1 aspect ratio).';
+      } else if (selectedPost.platform === 'LinkedIn') {
+        prompt += '\nThe image must be portrait (3:4 aspect ratio).';
+      }
+      const imgResult = await generateImage(prompt, apiKey);
+      setSelectedPost({ ...selectedPost, imageUrl: imgResult.image || '', imageCaption: imgResult.caption || '' });
+      toast({
+        title: "Image Regenerated!",
+        description: "A new image has been generated for this post.",
+      });
+    } catch (error) {
+      toast({
+        title: "Image Generation Failed",
+        description: "Failed to generate image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRegeneratingImage(false);
+    }
+  };
 
   return (
-
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
       <div className="max-w-[1600px] w-full mx-auto px-2 sm:px-4">
         <div className="text-center mt-2 mt-9">
@@ -745,9 +818,9 @@ Format the response as a JSON array of objects with these keys: platform, title,
           <div className="mb-4 flex items-center gap-2">
             <Search className="w-5 h-5 text-gray-700" />
             <span className="text-xl font-semibold text-gray-900">Industry Trend Discovery</span>
-          </div>
+              </div>
           <div className="flex gap-2 mb-2">
-            <Input
+                <Input
               value={searchValue}
               onChange={e => setSearchValue(e.target.value)}
               placeholder="What are you looking for?"
@@ -770,7 +843,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
             >
               <ArrowUpRight className="w-4 h-4 mr-2" />Refresh
             </Button>
-          </div>
+              </div>
           <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2 mt-4">Trending Topics</div>
           <div className="flex flex-wrap gap-3">
             {trendingTopics.map(topic => (
@@ -787,304 +860,61 @@ Format the response as a JSON array of objects with these keys: platform, title,
                 {topic}
               </button>
             ))}
-          </div>
-        </div>
+              </div>
+              </div>
 
         {/* Render generated posts as cards below trending section */}
-        {generatedPosts.length > 0 && (
+        {(generatedPosts.length > 0 || expectedPosts > 0) && (
           <div className="mb-10">
             <div className="flex items-center justify-between mb-4">
               <span className="text-2xl font-semibold text-black">Generated Posts for "{searchValue}"</span>
-              <span className="text-gray-500 text-sm">{generatedPosts.length} posts created</span>
-            </div>
+              <div className="flex gap-2 items-center">
+                <span className="text-gray-500 text-sm">{generatedPosts.length} posts created</span>
+                <Button variant="outline" size="sm" onClick={handleRefreshPosts} disabled={isSearching}>
+                  <RefreshCw className="w-4 h-4 mr-1" /> Refresh
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleClearPosts}>
+                  Clear
+                </Button>
+              </div>
+              </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {generatedPosts.map((post, idx) => (
                 <div key={idx} className="bg-white rounded-xl shadow border border-gray-100 p-6 flex flex-col gap-2 min-h-[220px] max-w-[370px] mx-auto cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick(post)}>
                   <div className="flex items-center justify-between mb-1">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${post.platform === 'LinkedIn' ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-900'}`}>{post.platform}</span>
                     <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">{post.score}% Score</span>
-                  </div>
+                        </div>
                   <div className="font-bold text-base text-gray-900 mb-1">{post.title}</div>
                   <div className="text-gray-700 text-sm mb-2 line-clamp-2">{post.content}</div>
                   <div className="flex items-center gap-4 text-xs mb-2">
                     <span className="flex items-center gap-1 text-blue-700 font-semibold"><span role="img" aria-label="reach">👁️</span>{post.reach}</span>
                     <span className="flex items-center gap-1 text-red-500 font-semibold"><span role="img" aria-label="likes">❤️</span>{post.likes}</span>
                     <span className="flex items-center gap-1 text-green-600 font-semibold"><span role="img" aria-label="comments">💬</span>{post.comments}</span>
-                  </div>
+                      </div>
                   <div className="text-xs text-gray-400 mt-auto">Created: {post.created}</div>
+                        </div>
+              ))}
+              {/* Skeleton cards for posts still processing */}
+              {Array.from({ length: Math.max(0, expectedPosts - generatedPosts.length) }).map((_, idx) => (
+                <div key={`skeleton-${idx}`} className="bg-gray-100 rounded-xl shadow border border-gray-200 p-6 flex flex-col gap-2 min-h-[220px] max-w-[370px] mx-auto animate-pulse">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="h-5 w-20 bg-gray-300 rounded-full" />
+                    <div className="h-5 w-16 bg-gray-300 rounded-full" />
+                  </div>
+                  <div className="h-6 w-3/4 bg-gray-300 rounded mb-1" />
+                  <div className="h-4 w-full bg-gray-200 rounded mb-2" />
+                  <div className="flex items-center gap-4 text-xs mb-2">
+                    <div className="h-4 w-12 bg-gray-200 rounded-full" />
+                    <div className="h-4 w-10 bg-gray-200 rounded-full" />
+                    <div className="h-4 w-10 bg-gray-200 rounded-full" />
+                  </div>
+                  <div className="h-4 w-1/2 bg-gray-200 rounded mt-auto" />
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-
-{/*  
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
-         
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="bg-black text-white rounded-t-lg">
-              <CardTitle className="flex items-center gap-2">
-                Content Generator
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="topic">Topic *</Label>
-                <Input
-                  id="topic"
-                  placeholder="What do you want to post about?"
-                  value={formData.topic}
-                  onChange={(e) => handleInputChange('topic', e.target.value)}
-                  className="border-2 border-gray-200 focus:border-blue-500 transition-colors"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="tone">Tone *</Label>
-                <Select onValueChange={(value) => handleInputChange('tone', value)}>
-                  <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500">
-                    <SelectValue placeholder="Select tone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="professional">Professional</SelectItem>
-                    <SelectItem value="casual">Casual</SelectItem>
-                    <SelectItem value="enthusiastic">Enthusiastic</SelectItem>
-                    <SelectItem value="inspirational">Inspirational</SelectItem>
-                    <SelectItem value="humorous">Humorous</SelectItem>
-                    <SelectItem value="educational">Educational</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="type">Content Type</Label>
-                <Select onValueChange={(value) => handleInputChange('type', value)}>
-                  <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500">
-                    <SelectValue placeholder="Select content type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="announcement">Announcement</SelectItem>
-                    <SelectItem value="tip">Tip/Advice</SelectItem>
-                    <SelectItem value="question">Question</SelectItem>
-                    <SelectItem value="story">Personal Story</SelectItem>
-                    <SelectItem value="quote">Quote/Inspiration</SelectItem>
-                    <SelectItem value="news">Industry News</SelectItem>
-                    <SelectItem value="tutorial">Tutorial/How-to</SelectItem>
-                    <SelectItem value="case-study">Case Study</SelectItem>
-                    <SelectItem value="product-launch">Product Launch</SelectItem>
-                    <SelectItem value="event">Event/Promotion</SelectItem>
-                    <SelectItem value="industry-trend">Industry Trend</SelectItem>
-                    <SelectItem value="behind-scenes">Behind the Scenes</SelectItem>
-                    <SelectItem value="achievement">Achievement/Milestone</SelectItem>
-                    <SelectItem value="poll">Poll/Survey</SelectItem>
-                    <SelectItem value="infographic">Infographic/Stats</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="audience">Target Audience</Label>
-                <Input
-                  id="audience"
-                  placeholder="Who is your target audience?"
-                  value={formData.audience}
-                  onChange={(e) => handleInputChange('audience', e.target.value)}
-                  className="border-2 border-gray-200 focus:border-blue-500 transition-colors"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="keyPoints">Key Points</Label>
-                <Textarea
-                  id="keyPoints"
-                  placeholder="Any specific points you want to include?"
-                  value={formData.keyPoints}
-                  onChange={(e) => handleInputChange('keyPoints', e.target.value)}
-                  className="border-2 border-gray-200 focus:border-blue-500 transition-colors min-h-20"
-                />
-              </div>
-
-              <Button 
-                onClick={generateContent}
-                disabled={isGenerating}
-                className="w-full bg-black text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
-              >
-                {isGenerating ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Generate Content
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-         
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="bg-black text-white rounded-t-lg">
-              <CardTitle className="flex items-center gap-2">
-                
-                Generated Content
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              {generatedContent ? (
-                <>
-               
-                  <Card className="shadow-md border-2 border-blue-200">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-semibold text-gray-700">Twitter Version</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {isImageLoading.twitter ? (
-                        <div className="w-full flex justify-center mb-2">
-                          <RefreshCw className="animate-spin w-8 h-8 text-blue-400" />
-                        </div>
-                      ) : (generatedContent.imageUrlTwitter ? (
-                        <div className="w-full flex flex-col items-center mb-2">
-                          <img src={generatedContent.imageUrlTwitter} alt="Generated for Twitter" className="rounded-lg max-h-48 object-contain" />
-                          {generatedContent.imageTwitter && (
-                            <span className="block mt-2 text-xs text-gray-700 italic">{generatedContent.imageTwitter}</span>
-                          )}
-                        </div>
-                      ) : null)}
-                      <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
-                        {generatedContent.twitter}
-                      </p>
-                      <div className="mt-2 mb-2">
-                        <span className="text-xs text-teal-700 font-semibold">Suggested Image:</span>
-                        <span className="ml-2 text-xs text-gray-700">{generatedContent.imageTwitter}</span>
-                      </div>
-                      <div className="mt-4 space-y-1">
-                        <div className="flex items-center gap-2 text-blue-600 text-sm">
-                          <Clock className="w-4 h-4" />
-                          <span>Best time to post:</span>
-                          <span className="font-bold text-gray-800 ml-1">{generatedContent.bestTimeTwitter}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-blue-600 text-sm">
-                          <Users className="w-4 h-4" />
-                          <span>Estimated reach:</span>
-                          <span className="font-bold text-gray-800 ml-1">{generatedContent.expectedReachTwitter}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-               
-                  <Card className="shadow-md border-2 border-blue-700">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-semibold text-gray-700">LinkedIn Version</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {isImageLoading.linkedin ? (
-                        <div className="w-full flex justify-center mb-2">
-                          <RefreshCw className="animate-spin w-8 h-8 text-blue-700" />
-                        </div>
-                      ) : (generatedContent.imageUrlLinkedin ? (
-                        <div className="w-full flex flex-col items-center mb-2">
-                          <img src={generatedContent.imageUrlLinkedin} alt="Generated for LinkedIn" className="rounded-lg max-h-48 object-contain" />
-                          {generatedContent.imageLinkedin && (
-                            <span className="block mt-2 text-xs text-gray-700 italic">{generatedContent.imageLinkedin}</span>
-                          )}
-                        </div>
-                      ) : null)}
-                      <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
-                        {generatedContent.linkedin}
-                      </p>
-                      <div className="mt-2 mb-2">
-                        <span className="text-xs text-teal-700 font-semibold">Suggested Image:</span>
-                        <span className="ml-2 text-xs text-gray-700">{generatedContent.imageLinkedin}</span>
-                      </div>
-                      <div className="mt-4 space-y-1">
-                        <div className="flex items-center gap-2 text-blue-600 text-sm">
-                          <Clock className="w-4 h-4" />
-                          <span>Best time to post:</span>
-                          <span className="font-bold text-gray-800 ml-1">{generatedContent.bestTimeLinkedin}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-blue-600 text-sm">
-                          <Users className="w-4 h-4" />
-                          <span>Estimated reach:</span>
-                          <span className="font-bold text-gray-800 ml-1">{generatedContent.expectedReachLinkedin}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <div className="flex gap-3">
-                    <Button 
-                      onClick={humanizeContent}
-                      disabled={isHumanizing}
-                      variant="outline"
-                      className="flex-1 border-2 border-purple-200 hover:bg-purple-50 transition-all duration-200"
-                    >
-                      {isHumanizing ? (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                          Humanizing...
-                        </>
-                      ) : (
-                        <>
-                          <Wand2 className="mr-2 h-4 w-4" />
-                          Humanize This
-                        </>
-                      )}
-                    </Button>
-                    
-                    <Button 
-                      onClick={generateContent}
-                      disabled={isGenerating}
-                      variant="outline"
-                      className="border-2 border-blue-200 hover:bg-blue-50 transition-all duration-200"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <div className="border-t pt-6">
-                    <Label className="text-lg font-semibold text-gray-700 mb-4 block">
-                      Share Your Content
-                    </Label>
-                    <div className="flex flex-col gap-4">
-                      <div className="space-y-4">
-                        <Button 
-                          onClick={() => handlePost('linkedin', 'aniket')}
-                          className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
-                        >
-                          <Linkedin className="mr-2 h-4 w-4" /> Post on LinkedIn
-                        </Button>
-                        <Button 
-                          onClick={() => handlePost('twitter', 'aniket')}
-                          className="w-full bg-blue-400 hover:bg-blue-500 text-white font-semibold py-3 transition-all duration-200 transform hover:scale-105"
-                        >
-                          <Twitter className="mr-2 h-4 w-4" /> Post on Twitter
-                        </Button>
-                      </div>
-
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-12">
-                  <Sparkles className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 text-lg">
-                    Generate your first piece of content to get started!
-                  </p>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
-  */}
-
-
-
 
         <div className="mt-12 text-center">
           <div className="flex justify-center gap-2 mb-4">
@@ -1107,7 +937,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
               <div className="flex flex-row items-center gap-3 px-8 pt-8 pb-2">
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${selectedPost.platform === 'LinkedIn' ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-900'}`}>{selectedPost.platform}</span>
                 <span className="font-bold text-xl text-gray-900">{selectedPost.title}</span>
-              </div>
+                        </div>
               <div className="flex flex-col md:flex-row gap-6 px-8 pb-6">
                 {/* Left: Post Content & Metrics */}
                 <div className="flex-1 min-w-[260px]">
@@ -1133,28 +963,28 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       {selectedPost.hashtags && selectedPost.hashtags.map((tag, i) => (
                         <span key={i} className="bg-white border border-gray-300 text-gray-900 px-3 py-1 rounded-full text-xs font-semibold">{tag}</span>
                       ))}
-                    </div>
-                  </div>
+                        </div>
+                      </div>
                   <div className="font-semibold text-base text-gray-900 mb-2">Performance Metrics</div>
                   <div className="grid grid-cols-2 gap-3 mb-2">
                     <div className="bg-blue-50 rounded-lg p-4 flex flex-col items-start">
                       <span className="text-xs text-blue-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='reach'>👁️</span> Reach</span>
                       <span className="text-xl font-bold text-blue-900">{selectedPost.reach}</span>
-                    </div>
+                        </div>
                     <div className="bg-green-50 rounded-lg p-4 flex flex-col items-start">
                       <span className="text-xs text-green-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='engagement'>↗️</span> Engagement</span>
                       <span className="text-xl font-bold text-green-900">{selectedPost.engagementPotential}%</span>
-                    </div>
+                        </div>
                     <div className="bg-red-50 rounded-lg p-4 flex flex-col items-start">
                       <span className="text-xs text-red-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='likes'>❤️</span> Likes</span>
                       <span className="text-xl font-bold text-red-900">{selectedPost.likes}</span>
-                    </div>
+                      </div>
                     <div className="bg-purple-50 rounded-lg p-4 flex flex-col items-start">
                       <span className="text-xs text-purple-700 font-semibold mb-1 flex items-center gap-1"><span role='img' aria-label='shares'>🔄</span> Shares</span>
                       <span className="text-xl font-bold text-purple-900">{selectedPost.shares}</span>
-                    </div>
-                  </div>
-                </div>
+                        </div>
+                        </div>
+                      </div>
                 {/* Right: AI Insights & Contacts */}
                 <div className="flex-1 min-w-[220px] flex flex-col gap-4 mt-2">
                   <div>
@@ -1163,17 +993,17 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       <div className="flex items-center justify-between mb-1 text-xs">
                         <span>Engagement Potential</span>
                         <span className="font-bold">{selectedPost.engagementPotential}%</span>
-                      </div>
+                        </div>
                       <div className="w-full h-2 bg-gray-200 rounded-full mb-2">
                         <div className="h-2 bg-black rounded-full" style={{ width: `${selectedPost.engagementPotential}%` }}></div>
+                        </div>
                       </div>
-                    </div>
                     <div className="bg-gray-50 rounded-lg p-3 flex items-center gap-2 mb-4">
                       <Clock className="w-4 h-4 text-yellow-700" />
                       <span className="text-xs text-gray-900 font-semibold">Best Time to Post</span>
                       <span className="text-xs text-gray-700 ml-auto">{selectedPost.bestTime}</span>
-                    </div>
                   </div>
+                      </div>
                   <div>
                     <div className="font-semibold text-base text-gray-900 mb-2">Interested Contacts</div>
                     <div className="flex flex-col gap-2">
@@ -1183,54 +1013,78 @@ Format the response as a JSON array of objects with these keys: platform, title,
                         <div className="flex items-center gap-2 mt-2">
                           <span className="text-xs text-gray-500">% of people likely to like this post:</span>
                           <span className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded-full text-xs font-semibold">{selectedPost.likePercentage}%</span>
-                        </div>
-                      </div>
+                    </div>
+                  </div>
                     </div>
                   </div>
                   {/* Generated Image Section */}
-                  {selectedPost.imageUrl && (
-                    <div className="flex flex-col items-center mt-2 mb-4">
-                      <img src={selectedPost.imageUrl} alt="Generated for this post" className="rounded-lg max-h-40 object-contain border border-gray-200" />
-                      <button
-                        className="mt-2 px-4 py-1 bg-black text-white rounded hover:bg-gray-800 text-xs"
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = selectedPost.imageUrl!;
-                          link.download = 'generated-image.jpg';
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                        }}
-                      >
-                        Download Image (JPG)
-                      </button>
+                  <div className="flex flex-col items-center mt-2 mb-4">
+                    <div
+                      className={
+                        selectedPost.platform === 'Twitter'
+                          ? 'w-40 h-40 flex items-center justify-center bg-white rounded-lg overflow-hidden border border-gray-200'
+                          : 'w-36 h-48 flex items-center justify-center bg-white rounded-lg overflow-hidden border border-gray-200'
+                      }
+                    >
+                      <img
+                        src={selectedPost.imageUrl || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\' viewBox=\'0 0 200 200\'><rect width=\'200\' height=\'200\' fill=\'%23e5e7eb\'/><text x=\'50%\' y=\'50%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%239ca3af\' font-size=\'20\'>No Image</text></svg>'}
+                        alt="Generated for this post"
+                        className="object-cover w-full h-full"
+                      />
                     </div>
-                  )}
-                </div>
-              </div>
+                    <button
+                      className="mt-2 px-4 py-1 bg-black text-white rounded hover:bg-gray-800 text-xs"
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = selectedPost.imageUrl!;
+                        link.download = 'generated-image.jpg';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                    >
+                      Download Image (JPG)
+                    </button>
+                    <div className="flex flex-col items-center gap-2 mt-3 w-full">
+                      <input
+                        type="text"
+                        className="w-full px-3 py-1 border border-gray-300 rounded text-xs"
+                        placeholder="Enter custom prompt for image..."
+                        value={customImagePrompt}
+                        onChange={e => setCustomImagePrompt(e.target.value)}
+                        disabled={isRegeneratingImage}
+                      />
+                      <Button
+                        size="sm"
+                        className="mt-1"
+                        onClick={handleRegenerateImage}
+                        disabled={isRegeneratingImage}
+                      >
+                        {isRegeneratingImage ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : null}
+                        Regenerate Image
+                      </Button>
+                    </div>
+                  </div>
+        </div>
+          </div>
               {/* Footer */}
               <div className="flex justify-end gap-2 px-8 pb-6 pt-2">
                 <Button variant="outline" onClick={handleCloseModal}>Close</Button>
+                {selectedPost.platform === 'LinkedIn' && (
+                  <Button onClick={handleCopyLinkedIn} variant="secondary">Copy</Button>
+                )}
                 <Button onClick={handleHumanizeModal} disabled={isHumanizingModal} variant="secondary">
                   {isHumanizingModal ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : null}
                   Humanize
                 </Button>
                 <Button className="bg-black text-white" onClick={handleSharePost}>Share Post</Button>
-              </div>
+        </div>
             </div>
           </div>
         )}
       </div>
     </div>
-
-
-
-
   );
 };
-
-
-
-
 
 export default Index;
