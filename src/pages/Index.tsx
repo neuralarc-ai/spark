@@ -75,7 +75,7 @@ async function generateImage(prompt: string, apiKey: string, platform?: string):
             {
               role: "user",
               parts: [
-                { text: `Read the following social media post content and generate a single, highly professional, visually compelling image that directly and clearly represents the main idea, theme, or message of the post.\n\n- The image must be contextually accurate and suitable for sharing on ${platform || '[LinkedIn/Twitter]'} (choose based on the post).\n- Avoid generic or unrelated visuals; focus on the specific subject, audience, and intent of the post.\n- The style should be clean, modern, and business-appropriate, with a strong visual connection to the post's content.\n- Use only these colors (with different opacities): #161616, #1E342F, #2B2521, #495663, #97A487, #A8B0B8, #A9A9A9, #B7A694, #B7BEAE, #C6AEA3, #CFD2D4, #CFD4C9, #D0C3B5, #E3E2DF, #F8F7F3.\n- ghibli studio effect\n\nAlso provide a very short, professional caption for the image (5 words or less).\n\nPost content:\n${prompt}` }
+                { text: `Read the following social media post content and generate a single, highly professional, visually compelling image that directly and clearly represents the main idea, theme, or message of the post.\n\n- The image must be contextually accurate and suitable for sharing on ${platform || '[LinkedIn/Twitter]'} (choose based on the post).\n- The style should be either comic-style or hyperreal photo style (choose the most visually impactful for the post).\n- Use all pastel colors for a modern, appealing look.\n- The image must visually follow the prompt given by the tweet or LinkedIn post, and the post content should be used as a heading in the image.\n- Avoid generic or unrelated visuals; focus on the specific subject, audience, and intent of the post.\n- The style should be clean, modern, and business-appropriate, with a strong visual connection to the post's content.\n- Also provide a very short, professional caption for the image (5 words or less).\n\nPost content (use as heading):\n${prompt}` }
               ]
             }
           ],
@@ -1270,8 +1270,11 @@ Format the response as a JSON array of objects with these keys: platform, title,
                 <span className="font-bold text-lg text-gray-900">Spart</span>
                 <span className="block text-gray-500 text-sm mt-1">AI-powered social media content generator</span>
               </div>
-              <div className="text-xs text-gray-400 mt-2 md:mt-0 w-full md:w-auto text-center md:text-right">
+              <div className="text-xs text-gray-400 mt-2 md:mt-0 w-full md:w-auto text-center md:text-right flex items-center justify-center md:justify-end">
                 © 2025 neuralarc. All rights reserved. A thing by Neuralarc
+                <a href="https://www.neuralarc.ai/" target="_blank" rel="noopener noreferrer" className="ml-2 inline-block align-middle">
+                  <img src="/neuralarc-logo.png" alt="Neuralarc Logo" style={{ height: '28px', display: 'inline-block', verticalAlign: 'middle' }} />
+                </a>
               </div>
             </div>
           </footer>
