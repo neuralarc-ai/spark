@@ -308,6 +308,7 @@ const Index = () => {
   const [rephrasing, setRephrasing] = useState(false);
   const [listening, setListening] = useState(false);
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
+  const [isRegeneratingPost, setIsRegeneratingPost] = useState(false);
 
   // For 4-digit PIN input
   const pinDigits = [0, 1, 2, 3];
@@ -994,6 +995,39 @@ Format the response as a JSON array of objects with these keys: platform, title,
     recognition.start();
   };
 
+  const handleRegeneratePost = async () => {
+    if (!selectedPost) return;
+    setIsRegeneratingPost(true);
+    try {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const prompt = `Regenerate this social media post for the platform ${selectedPost.platform}. Return a new, unique, and engaging version. Do not use asterisks (*) anywhere in the content, including for bullet points, emphasis, or formatting.\n\nCurrent post:\n${selectedPost.content}`;
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 1024 }
+        })
+      });
+      if (!response.ok) throw new Error('Failed to regenerate post');
+      const data = await response.json();
+      const newContent = data.candidates[0].content.parts[0].text.trim();
+      setSelectedPost({ ...selectedPost, content: newContent });
+      toast({
+        title: 'Post Regenerated!',
+        description: 'A new version of the post has been generated.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Regeneration Failed',
+        description: 'Could not regenerate the post. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRegeneratingPost(false);
+    }
+  };
+
   return (
     <>
       {showPinModal && (
@@ -1267,13 +1301,13 @@ Format the response as a JSON array of objects with these keys: platform, title,
           <footer className="w-full border-t border-gray-200 bg-[#F6F5F3] py-8 mt-8">
             <div className="max-w-[1600px] mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
               <div>
-                <span className="font-bold text-lg text-gray-900">Spart</span>
-                <span className="block text-gray-500 text-sm mt-1">AI-powered social media content generator</span>
+                <span className="font-bold text-lg text-black">Spart</span>
+                <span className="block text-black text-sm mt-1">AI-powered social media content generator</span>
               </div>
-              <div className="text-xs text-gray-400 mt-2 md:mt-0 w-full md:w-auto text-center md:text-right flex items-center justify-center md:justify-end">
-                © 2025 neuralarc. All rights reserved. A thing by Neuralarc
+              <div className="text-xs text-black mt-2 md:mt-0 w-full md:w-auto text-center md:text-right flex items-center justify-center md:justify-end">
+                Copyright 2025. All rights reserved. Spark, A thing by NeuralArc
                 <a href="https://www.neuralarc.ai/" target="_blank" rel="noopener noreferrer" className="ml-2 inline-block align-middle">
-                  <img src="/neuralarc-logo.png" alt="Neuralarc Logo" style={{ height: '28px', display: 'inline-block', verticalAlign: 'middle' }} />
+                  <img src="/neuralarc-logo.png" alt="Neuralarc Logo" style={{ height: '28px', display: 'inline-block', verticalAlign: 'middle', filter: 'invert(1)' }} />
                 </a>
               </div>
             </div>
@@ -1281,8 +1315,8 @@ Format the response as a JSON array of objects with these keys: platform, title,
         </div>
       )}
       {isModalOpen && selectedPost && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] sm:h-[85vh] md:h-[80vh] lg:h-[75vh] max-h-[90vh] p-4 md:p-8 relative animate-fadeIn overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl p-4 md:p-8 relative animate-fadeIn flex flex-col">
             <button
               className="absolute top-4 right-4 text-gray-400 hover:text-black text-2xl font-bold focus:outline-none z-10"
               onClick={handleCloseModal}
@@ -1317,13 +1351,31 @@ Format the response as a JSON array of objects with these keys: platform, title,
                   <span className="text-sm text-gray-900 font-bold">{selectedPost.bestTime}</span>
                 </div>
                 {selectedPost.imageUrl && (
-                  <div className="flex-1 min-h-0">
+                  <div className="flex-1 min-h-0 relative">
                     <div className="relative aspect-[4/3] sm:aspect-[3/2] md:aspect-[16/9] w-full rounded-xl overflow-hidden mb-2">
                       <img 
                         src={selectedPost.imageUrl} 
                         alt="Generated" 
                         className="absolute inset-0 w-full h-full object-cover" 
                       />
+                      {/* Download button overlay */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = selectedPost.imageUrl || '';
+                          link.download = 'generated-image.png';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                        className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full p-2 shadow transition-colors z-10"
+                        title="Download Image"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+                        </svg>
+                      </button>
                     </div>
                     {/* Custom prompt input and regenerate button */}
                     <div className="flex flex-col gap-3 mt-4 mb-2">
@@ -1333,111 +1385,107 @@ Format the response as a JSON array of objects with these keys: platform, title,
                         placeholder="Enter custom prompt for image generation. Be specific about style, mood, and composition..."
                         className="w-full min-h-[100px] max-h-[200px] overflow-y-auto text-sm rounded-xl border border-gray-200 focus:border-black bg-gray-50 resize-none"
                       />
-                      <div className="flex items-center justify-between gap-2">
-                        <TooltipProvider>
-                          <div className="flex items-center gap-x-3 min-w-0 overflow-x-auto">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                    <Button 
-                                  onClick={handleVoiceInputForPrompt}
-                                  disabled={listening}
-                      variant="outline"
-                                  size="icon"
-                                  className="rounded-full min-w-0"
-                                  aria-label="Voice Input"
-                                >
-                                  <Mic className={`w-5 h-5${listening ? ' animate-pulse' : ''}`} />
-                    </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Use voice to fill the prompt
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                    <Button 
-                                  onClick={() => {
-                                    setCustomImagePrompt(selectedPost.content);
-                                  }}
-                                  disabled={isRegeneratingImage}
-                      variant="outline"
-                                  className="flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
-                    >
-                                  <Wand2 className="w-4 h-4 mr-2" />
-                                  <span>Use Text</span>
-                    </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Generate image using post content as prompt
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                        <Button 
-                                  onClick={async () => {
-                                    setIsEnhancingPrompt(true);
-                                    try {
-                                      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-                                      const prompt = `Rephrase the following text to make it more descriptive, creative, and visually inspiring for an AI image generator. Return only the improved version, no explanations.\n\n${customImagePrompt}`;
-                                      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                          contents: [{ parts: [{ text: prompt }] }],
-                                          generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 256 }
-                                        })
-                                      });
-                                      if (!response.ok) throw new Error('Failed to enhance prompt');
-                                      const data = await response.json();
-                                      const newPrompt = data.candidates[0].content.parts[0].text.trim();
-                                      setCustomImagePrompt(newPrompt);
-                                    } catch (error) {
-                                      // Optionally show a toast or error
-                                    } finally {
-                                      setIsEnhancingPrompt(false);
-                                    }
-                                  }}
-                                  disabled={isRegeneratingImage || isEnhancingPrompt}
-                                  variant="outline"
-                                  className="flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
-                                >
-                                  {isEnhancingPrompt ? (
-                                    <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                                  ) : (
-                                    <Sparkles className="w-4 h-4 mr-2" />
-                                  )}
-                                  <span>Enhance</span>
-                        </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Rephrase and enhance the prompt using AI
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                        <Button 
-                                  onClick={handleRegenerateImage}
-                                  disabled={isRegeneratingImage}
-                                  className="bg-black text-white hover:bg-gray-900 flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
-                                >
-                                  {isRegeneratingImage ? (
-                                    <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                                  ) : (
-                                    <RefreshCw className="w-4 h-4 mr-2" />
-                                  )}
-                                  <span>Generate</span>
-                        </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Generate new image with current prompt
-                              </TooltipContent>
-                            </Tooltip>
+                      <div className="flex items-center gap-x-3 min-w-0 overflow-x-auto flex-wrap gap-y-2 mb-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              onClick={handleVoiceInputForPrompt}
+                              disabled={listening}
+                              variant="outline"
+                              size="icon"
+                              className="rounded-full min-w-0"
+                              aria-label="Voice Input"
+                            >
+                              <Mic className={`w-5 h-5${listening ? ' animate-pulse' : ''}`} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Use voice to fill the prompt
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              onClick={() => {
+                                setCustomImagePrompt(selectedPost.content);
+                              }}
+                              disabled={isRegeneratingImage}
+                              variant="outline"
+                              className="flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
+                            >
+                              <Wand2 className="w-4 h-4 mr-2" />
+                              <span>Use Text</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Generate image using post content as prompt
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              onClick={async () => {
+                                setIsEnhancingPrompt(true);
+                                try {
+                                  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+                                  const prompt = `Rephrase the following text to make it more descriptive, creative, and visually inspiring for an AI image generator. Return only the improved version, no explanations.\n\n${customImagePrompt}`;
+                                  const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      contents: [{ parts: [{ text: prompt }] }],
+                                      generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 256 }
+                                    })
+                                  });
+                                  if (!response.ok) throw new Error('Failed to enhance prompt');
+                                  const data = await response.json();
+                                  const newPrompt = data.candidates[0].content.parts[0].text.trim();
+                                  setCustomImagePrompt(newPrompt);
+                                } catch (error) {
+                                  // Optionally show a toast or error
+                                } finally {
+                                  setIsEnhancingPrompt(false);
+                                }
+                              }}
+                              disabled={isRegeneratingImage || isEnhancingPrompt}
+                              variant="outline"
+                              className="flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
+                            >
+                              {isEnhancingPrompt ? (
+                                <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                              ) : (
+                                <Sparkles className="w-4 h-4 mr-2" />
+                              )}
+                              <span>Enhance</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Rephrase and enhance the prompt using AI
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              onClick={handleRegenerateImage}
+                              disabled={isRegeneratingImage}
+                              className="bg-black text-white hover:bg-gray-900 flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
+                            >
+                              {isRegeneratingImage ? (
+                                <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                              ) : (
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                              )}
+                              <span>Generate</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Generate new image with current prompt
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
-                        </TooltipProvider>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
                 <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2">
                   <div className="text-xs text-gray-500 font-semibold">AI Insights</div>
@@ -1457,9 +1505,12 @@ Format the response as a JSON array of objects with these keys: platform, title,
         </div>
 
                 <div className="flex gap-2 mt-auto pt-4">
-                  <Button onClick={handleSharePost} className="flex-1 bg-black text-white hover:bg-gray-900">Post Now</Button>
                   <Button variant="outline" onClick={handleCopyLinkedIn} className="flex-1">Copy</Button>
                   <Button variant="outline" onClick={handleHumanizeModal} className="flex-1">Humanize</Button>
+                  <Button variant="outline" onClick={handleRegeneratePost} className="flex-1" disabled={isRegeneratingPost}>
+                    {isRegeneratingPost ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}Regenerate
+                  </Button>
+                  <Button onClick={handleSharePost} className="flex-1 bg-black text-white hover:bg-gray-900">Post Now</Button>
       </div>
     </div>
       </div>
