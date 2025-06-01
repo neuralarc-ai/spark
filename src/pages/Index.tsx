@@ -1089,8 +1089,8 @@ Format the response as a JSON array of objects with these keys: platform, title,
         </div>
       )}
       {!showPinModal && (
-        <div className="min-h-screen bg-[#F6F5F3] flex flex-col">
-          <div className="max-w-[1600px] w-full mx-auto flex-1">
+        <div className="min-h-screen flex flex-col bg-[#F6F5F3]">
+          <div className="max-w-[1600px] w-full mx-auto flex-1 flex flex-col mb-12">
             <div className="text-center mt-2 mt-9 mb-8">
           <div className="flex items-center justify-center mb-4">
             <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent">
@@ -1103,9 +1103,9 @@ Format the response as a JSON array of objects with these keys: platform, title,
               </div>
 
             {/* Split Screen Layout */}
-            <div className="flex gap-6 px-4">
+            <div className="flex gap-6 px-4 flex-1 overflow-hidden">
               {/* Left Side - Industry Trend Discovery */}
-              <div className="w-1/2 bg-white rounded-2xl shadow-lg border border-gray-100 p-8 h-[calc(100vh-200px)] flex flex-col">
+              <div className="w-1/2 bg-white rounded-2xl shadow-lg border border-gray-100 p-8 flex flex-col flex-1 min-w-0 overflow-hidden">
                 <div className="mb-8">
                   <div className="flex items-center gap-2 mb-6">
                     <Search className="w-6 h-6 text-gray-700" />
@@ -1167,7 +1167,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                               className="h-12 px-6 bg-black text-white rounded-xl text-base font-semibold hover:bg-gray-900 transition-all duration-200 ml-2 shadow-lg flex items-center gap-2"
                               onClick={handleSearch}
                               disabled={isSearching}
-                            >
+              >
                               {isSearching ? (
                                 <RefreshCw className="w-5 h-5 animate-spin" />
                 ) : (
@@ -1184,7 +1184,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       </div>
 
                 {/* Trending Topics Section */}
-                <div className="flex-1 overflow-y-auto pr-2">
+                <div className="flex-1 overflow-hidden pr-2">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-2">
                       <TrendingUpIcon className="w-5 h-5 text-gray-700" />
@@ -1193,7 +1193,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                     <span className="text-sm text-gray-500">{trendingTopics.length} topics</span>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-1 gap-3 overflow-y-auto max-h-[40vh] md:max-h-[50vh] lg:max-h-[60vh]">
                     {trendingTopics.map((topic, index) => (
                       <button
                         key={topic}
@@ -1244,11 +1244,24 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       </div>
 
               {/* Right Side - Generated Posts */}
-              <div className="w-1/2 h-[calc(100vh-200px)] overflow-y-auto pr-2">
-                <div className="mb-6 flex items-center justify-between">
-                  <span className="text-xl font-semibold text-black">Recommended Posts</span>
-                  <span className="text-gray-500 text-sm">Click a post to view details</span>
+              <div className="w-1/2 flex-1 min-w-0 overflow-hidden">
+                <div className="mb-6">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xl font-semibold text-black">Recommended Posts</span>
+                    {generatedPosts.length > 0 && (
+                      <Button
+                        variant="outline"
+                        onClick={handleRefreshPosts}
+                        disabled={isSearching}
+                        className="flex items-center gap-2"
+                      >
+                        {isSearching ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                        Regenerate All
+                      </Button>
+                          )}
                         </div>
+                  <span className="text-gray-500 text-sm block mt-1">Click a post to view details</span>
+                      </div>
                 <div className="grid grid-cols-2 gap-5">
                   {generatedPosts.slice(0, 6).map((post, idx) => (
                     <div
@@ -1272,9 +1285,9 @@ Format the response as a JSON array of objects with these keys: platform, title,
                         <span className="flex items-center gap-1 text-gray-700 font-semibold">
                           <span role="img" aria-label="comments">💬</span>{post.comments}
                         </span>
-                      </div>
-                      <div className="text-xs text-gray-400">Created: {post.created}</div>
                         </div>
+                      <div className="text-xs text-gray-400">Created: {post.created}</div>
+                      </div>
                   ))}
                   {/* Skeleton cards for posts still processing */}
                   {Array.from({ length: Math.max(0, 6 - generatedPosts.length) }).map((_, idx) => (
@@ -1298,10 +1311,10 @@ Format the response as a JSON array of objects with these keys: platform, title,
               </div>
             </div>
           </div>
-          <footer className="w-full border-t border-gray-200 bg-[#F6F5F3] py-8 mt-8">
+          <footer className="w-full border-t border-gray-200 bg-[#F6F5F3] py-8">
             <div className="max-w-[1600px] mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
               <div>
-                <span className="font-bold text-lg text-black">Spart</span>
+                <span className="font-bold text-lg text-black">Spark</span>
                 <span className="block text-black text-sm mt-1">AI-powered social media content generator</span>
               </div>
               <div className="text-xs text-black mt-2 md:mt-0 w-full md:w-auto text-center md:text-right flex items-center justify-center md:justify-end">
@@ -1388,16 +1401,16 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       <div className="flex items-center gap-x-3 min-w-0 overflow-x-auto flex-wrap gap-y-2 mb-2">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button 
+                    <Button 
                               onClick={handleVoiceInputForPrompt}
                               disabled={listening}
-                              variant="outline"
+                      variant="outline"
                               size="icon"
                               className="rounded-full min-w-0"
                               aria-label="Voice Input"
                             >
                               <Mic className={`w-5 h-5${listening ? ' animate-pulse' : ''}`} />
-                            </Button>
+                    </Button>
                           </TooltipTrigger>
                           <TooltipContent>
                             Use voice to fill the prompt
@@ -1405,17 +1418,17 @@ Format the response as a JSON array of objects with these keys: platform, title,
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button 
+                    <Button 
                               onClick={() => {
                                 setCustomImagePrompt(selectedPost.content);
                               }}
                               disabled={isRegeneratingImage}
-                              variant="outline"
+                      variant="outline"
                               className="flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
-                            >
+                    >
                               <Wand2 className="w-4 h-4 mr-2" />
                               <span>Use Text</span>
-                            </Button>
+                    </Button>
                           </TooltipTrigger>
                           <TooltipContent>
                             Generate image using post content as prompt
@@ -1423,7 +1436,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button 
+                        <Button 
                               onClick={async () => {
                                 setIsEnhancingPrompt(true);
                                 try {
@@ -1450,14 +1463,14 @@ Format the response as a JSON array of objects with these keys: platform, title,
                               disabled={isRegeneratingImage || isEnhancingPrompt}
                               variant="outline"
                               className="flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
-                            >
+                        >
                               {isEnhancingPrompt ? (
                                 <RefreshCw className="w-4 h-4 animate-spin mr-2" />
                               ) : (
                                 <Sparkles className="w-4 h-4 mr-2" />
                               )}
                               <span>Enhance</span>
-                            </Button>
+                        </Button>
                           </TooltipTrigger>
                           <TooltipContent>
                             Rephrase and enhance the prompt using AI
@@ -1465,7 +1478,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button 
+                        <Button 
                               onClick={handleRegenerateImage}
                               disabled={isRegeneratingImage}
                               className="bg-black text-white hover:bg-gray-900 flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
@@ -1476,7 +1489,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                                 <RefreshCw className="w-4 h-4 mr-2" />
                               )}
                               <span>Generate</span>
-                            </Button>
+                        </Button>
                           </TooltipTrigger>
                           <TooltipContent>
                             Generate new image with current prompt
@@ -1492,7 +1505,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                   <div className="flex flex-col gap-1 text-sm">
                     <span>Target Area: <b>{selectedPost.targetArea}</b></span>
                     </div>
-        </div>
+                  </div>
 
                 <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2">
                   <div className="text-xs text-gray-500 font-semibold">Performance</div>
@@ -1501,7 +1514,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                     <span>❤️ <b>{selectedPost.likes}</b> Likes</span>
                     <span>💬 <b>{selectedPost.comments}</b> Comments</span>
                     <span>🔁 <b>{selectedPost.shares}</b> Shares</span>
-          </div>
+                </div>
         </div>
 
                 <div className="flex gap-2 mt-auto pt-4">
@@ -1511,8 +1524,8 @@ Format the response as a JSON array of objects with these keys: platform, title,
                     {isRegeneratingPost ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}Regenerate
                   </Button>
                   <Button onClick={handleSharePost} className="flex-1 bg-black text-white hover:bg-gray-900">Post Now</Button>
-      </div>
-    </div>
+          </div>
+        </div>
       </div>
     </div>
         </div>
