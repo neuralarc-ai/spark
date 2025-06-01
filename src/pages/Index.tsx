@@ -308,6 +308,7 @@ const Index = () => {
   const [filledInputs, setFilledInputs] = useState<boolean[]>([false, false, false, false]);
   const [rephrasing, setRephrasing] = useState(false);
   const [listening, setListening] = useState(false);
+  const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
 
   // For 4-digit PIN input
   const pinDigits = [0, 1, 2, 3];
@@ -950,9 +951,8 @@ Format the response as a JSON array of objects with these keys: platform, title,
     }
   };
 
-  // Voice input handler
-  const handleVoiceInput = () => {
-    // TypeScript type guard for SpeechRecognition
+  // Voice input handler for image prompt
+  const handleVoiceInputForPrompt = () => {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -968,11 +968,11 @@ Format the response as a JSON array of objects with these keys: platform, title,
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
     setListening(true);
-    toast({ title: "Listening...", description: "Speak now and your words will appear in the box." });
+    toast({ title: "Listening...", description: "Speak now and your words will appear in the image prompt box." });
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
-      setSearchValue((prev: string) => prev ? prev + ' ' + transcript : transcript);
-      toast({ title: "Voice Input", description: "Text added from your speech." });
+      setCustomImagePrompt((prev: string) => prev ? prev + ' ' + transcript : transcript);
+      toast({ title: "Voice Input", description: "Text added to image prompt from your speech." });
     };
     recognition.onerror = (event: any) => {
       toast({ title: "Voice Error", description: event.error || "Could not recognize speech.", variant: "destructive" });
@@ -1107,7 +1107,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                                   <button
                                     type="button"
                                     className={`rounded-full bg-gray-100 hover:bg-gray-200 focus:bg-gray-200 p-3 transition-colors border border-gray-200 focus:outline-none shadow-sm${listening ? ' animate-pulse' : ''}`}
-                                    onClick={handleVoiceInput}
+                                    onClick={handleVoiceInputForPrompt}
                                     aria-label="Voice Input"
                                     disabled={listening}
                                   >
@@ -1257,31 +1257,171 @@ Format the response as a JSON array of objects with these keys: platform, title,
         </div>
       )}
       {isModalOpen && selectedPost && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 relative animate-fadeIn overflow-y-auto max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] sm:h-[85vh] md:h-[80vh] lg:h-[75vh] max-h-[90vh] p-4 md:p-8 relative animate-fadeIn overflow-hidden flex flex-col">
             <button
-              className="absolute top-4 right-4 text-gray-400 hover:text-black text-2xl font-bold focus:outline-none"
+              className="absolute top-4 right-4 text-gray-400 hover:text-black text-2xl font-bold focus:outline-none z-10"
               onClick={handleCloseModal}
               aria-label="Close"
             >
               ×
             </button>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full overflow-y-auto pr-2">
               {/* Left Column */}
-                    <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 min-h-0">
                 <div className="flex items-center gap-2">
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${selectedPost.platform === 'LinkedIn' ? 'bg-black text-white' : 'bg-gray-200 text-gray-900'}`}>{selectedPost.platform}</span>
                 </div>
-                <div className="font-bold text-2xl text-gray-900">{selectedPost.title}</div>
-                <div className="text-gray-700 text-base whitespace-pre-line" style={{ maxHeight: 180, overflowY: 'auto' }}>{selectedPost.content}</div>
+                <div className="font-bold text-xl sm:text-2xl text-gray-900">{selectedPost.title}</div>
+                <div className="text-gray-700 text-sm sm:text-base whitespace-pre-line overflow-y-auto flex-1" style={{ maxHeight: 'calc(100vh - 400px)' }}>{selectedPost.content}</div>
                 {selectedPost.hashtags && selectedPost.hashtags.length > 0 && (
-                  <div>
-                    <span className="font-semibold text-xs text-gray-500 mr-2">Hashtags:</span>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <span className="font-semibold text-xs text-gray-500">Hashtags:</span>
                     {selectedPost.hashtags.map(tag => (
-                      <span key={tag} className="inline-block bg-gray-100 text-gray-700 rounded-full px-2 py-1 text-xs mr-1">{tag}</span>
+                      <span key={tag} className="inline-block bg-gray-100 text-gray-700 rounded-full px-2 py-1 text-xs">{tag}</span>
                     ))}
                   </div>
                 )}
+                  </div>
+
+              {/* Right Column */}
+              <div className="flex flex-col gap-4 min-h-0">
+                {/* Best Time at the top */}
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-gray-500" />
+                  <span className="font-semibold text-sm text-gray-700">Best Time:</span>
+                  <span className="text-sm text-gray-900 font-bold">{selectedPost.bestTime}</span>
+                </div>
+                {selectedPost.imageUrl && (
+                  <div className="flex-1 min-h-0">
+                    <div className="relative aspect-[4/3] sm:aspect-[3/2] md:aspect-[16/9] w-full rounded-xl overflow-hidden mb-2">
+                      <img 
+                        src={selectedPost.imageUrl} 
+                        alt="Generated" 
+                        className="absolute inset-0 w-full h-full object-cover" 
+                      />
+                    </div>
+                    {/* Custom prompt input and regenerate button */}
+                    <div className="flex flex-col gap-3 mt-4 mb-2">
+                      <Textarea
+                        value={customImagePrompt}
+                        onChange={e => setCustomImagePrompt(e.target.value)}
+                        placeholder="Enter custom prompt for image generation. Be specific about style, mood, and composition..."
+                        className="w-full min-h-[100px] max-h-[200px] overflow-y-auto text-sm rounded-xl border border-gray-200 focus:border-black bg-gray-50 resize-none"
+                      />
+                      <div className="flex items-center justify-between gap-2">
+                        <TooltipProvider>
+                          <div className="flex items-center gap-x-3 min-w-0 overflow-x-auto">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={handleVoiceInputForPrompt}
+                                  disabled={listening}
+                                  variant="outline"
+                                  size="icon"
+                                  className="rounded-full min-w-0"
+                                  aria-label="Voice Input"
+                                >
+                                  <Mic className={`w-5 h-5${listening ? ' animate-pulse' : ''}`} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Use voice to fill the prompt
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  onClick={() => {
+                                    setCustomImagePrompt(selectedPost.content);
+                                  }}
+                                  disabled={isRegeneratingImage}
+                                  variant="outline"
+                                  className="flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
+                                >
+                                  <Wand2 className="w-4 h-4 mr-2" />
+                                  <span>Use Text</span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Generate image using post content as prompt
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  onClick={async () => {
+                                    setIsEnhancingPrompt(true);
+                                    try {
+                                      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+                                      const prompt = `Rephrase the following text to make it more descriptive, creative, and visually inspiring for an AI image generator. Return only the improved version, no explanations.\n\n${customImagePrompt}`;
+                                      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          contents: [{ parts: [{ text: prompt }] }],
+                                          generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 256 }
+                                        })
+                                      });
+                                      if (!response.ok) throw new Error('Failed to enhance prompt');
+                                      const data = await response.json();
+                                      const newPrompt = data.candidates[0].content.parts[0].text.trim();
+                                      setCustomImagePrompt(newPrompt);
+                                    } catch (error) {
+                                      // Optionally show a toast or error
+                                    } finally {
+                                      setIsEnhancingPrompt(false);
+                                    }
+                                  }}
+                                  disabled={isRegeneratingImage || isEnhancingPrompt}
+                                  variant="outline"
+                                  className="flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
+                                >
+                                  {isEnhancingPrompt ? (
+                                    <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                                  ) : (
+                                    <Sparkles className="w-4 h-4 mr-2" />
+                                  )}
+                                  <span>Enhance</span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Rephrase and enhance the prompt using AI
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  onClick={handleRegenerateImage}
+                                  disabled={isRegeneratingImage}
+                                  className="bg-black text-white hover:bg-gray-900 flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
+                                >
+                                  {isRegeneratingImage ? (
+                                    <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                                  ) : (
+                                    <RefreshCw className="w-4 h-4 mr-2" />
+                                  )}
+                                  <span>Generate</span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Generate new image with current prompt
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TooltipProvider>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2">
+                  <div className="text-xs text-gray-500 font-semibold">AI Insights</div>
+                  <div className="flex flex-col gap-1 text-sm">
+                    <span>Target Area: <b>{selectedPost.targetArea}</b></span>
+                    </div>
+                  </div>
+
                 <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2">
                   <div className="text-xs text-gray-500 font-semibold">Performance</div>
                   <div className="flex flex-wrap gap-3 text-sm">
@@ -1289,58 +1429,17 @@ Format the response as a JSON array of objects with these keys: platform, title,
                     <span>❤️ <b>{selectedPost.likes}</b> Likes</span>
                     <span>💬 <b>{selectedPost.comments}</b> Comments</span>
                     <span>🔁 <b>{selectedPost.shares}</b> Shares</span>
-                  </div>
-                      </div>
-
-
-                    </div>
-              {/* Right Column */}
-                    <div className="flex flex-col gap-4">
-                {/* Best Time at the top */}
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-4 h-4 text-gray-500" />
-                  <span className="font-semibold text-sm text-gray-700">Best Time:</span>
-                  <span className="text-sm text-gray-900 font-bold">{selectedPost.bestTime}</span>
-                  </div>
-                {selectedPost.imageUrl && (
-                  <div>
-                    <img src={selectedPost.imageUrl} alt="Generated" className="w-full rounded-xl object-cover mb-2" style={{ maxHeight: 200 }} />
-                    {/* Custom prompt input and regenerate button */}
-                    <div className="flex flex-wrap gap-2 mt-4 mb-2 items-center min-w-0">
-                      <input
-                        type="text"
-                        value={customImagePrompt}
-                        onChange={e => setCustomImagePrompt(e.target.value)}
-                        placeholder="Enter custom prompt for image..."
-                        className="flex-1 min-w-0 border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-black bg-gray-50"
-                      />
-                      <Button
-                        onClick={handleRegenerateImage}
-                        disabled={isRegeneratingImage}
-                        className="bg-black text-white hover:bg-gray-900 px-5 py-2 whitespace-nowrap"
-                      >
-                        {isRegeneratingImage ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Regenerate Image'}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              
-                <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2">
-                  <div className="text-xs text-gray-500 font-semibold">AI Insights</div>
-                  <div className="flex flex-col gap-1 text-sm">
-                    <span>Target Area: <b>{selectedPost.targetArea}</b></span>
-                    <span>Like %: <b>{selectedPost.likePercentage}%</b></span>
-                    <span>Created: <b>{selectedPost.created}</b></span>
-                  </div>
                 </div>
-                <div className="flex gap-2 mt-2">
+        </div>
+
+                <div className="flex gap-2 mt-auto pt-4">
                   <Button onClick={handleSharePost} className="flex-1 bg-black text-white hover:bg-gray-900">Post Now</Button>
                   <Button variant="outline" onClick={handleCopyLinkedIn} className="flex-1">Copy</Button>
                   <Button variant="outline" onClick={handleHumanizeModal} className="flex-1">Humanize</Button>
-                </div>
-              </div>
-            </div>
           </div>
+        </div>
+      </div>
+    </div>
         </div>
       )}
     </>
