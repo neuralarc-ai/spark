@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -217,79 +217,9 @@ const Index = () => {
   const [isHumanizing, setIsHumanizing] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState<{twitter: boolean, linkedin: boolean}>({twitter: false, linkedin: false});
   const { toast } = useToast();
-  const trendingTopicsSets = [
-    [
-      "Artificial Intelligence integration",
-      "AI-driven personalization",
-      "Generative AI tools", 
-      "Machine Learning automation",
-      "ChatGPT enterprise adoption",
-      "AI content creation",
-      "Neural networks advancement",
-      "Robotics automation"
-    ],
-    [
-      "AI ethics and governance",
-      "Computer vision technology", 
-      "Natural language processing",
-      "AI in healthcare",
-      "Autonomous vehicles",
-      "Smart city technologies",
-      "Quantum computing",
-      "Blockchain innovations"
-    ],
-    [
-      "Cryptocurrency trends",
-      "NFT marketplace evolution",
-      "Web3 development",
-      "Metaverse platforms",
-      "Remote work optimization",
-      "Hybrid workplace strategies",
-      "Digital nomad lifestyle",
-      "Skills-based hiring"
-    ],
-    [
-      "Career pivoting strategies",
-      "Personal branding online",
-      "LinkedIn networking tactics",
-      "Professional mentorship",
-      "Leadership development",
-      "Emotional intelligence",
-      "Work-life balance",
-      "Employee wellness programs"
-    ],
-    [
-      "Diversity and inclusion",
-      "Gender pay gap discussions",
-      "Quiet leadership trends",
-      "Startup funding rounds",
-      "Venture capital trends",
-      "Business model innovation",
-      "Digital transformation",
-      "E-commerce growth"
-    ],
-    [
-      "Subscription economy",
-      "Creator economy expansion",
-      "Influencer marketing ROI",
-      "Social commerce",
-      "B2B marketing automation",
-      "Customer experience optimization",
-      "Data-driven decision making",
-      "Supply chain resilience"
-    ],
-    [
-      "Sustainable business practices",
-      "ESG investing",
-      "Short-form video content",
-      "Interactive content formats",
-      "Live streaming engagement",
-      "User-generated content",
-      "Micro-influencer partnerships",
-      "Authentic storytelling"
-    ]
-  ];
-  const [trendingTopics, setTrendingTopics] = useState<string[]>(trendingTopicsSets[0]);
+  const [trendingTopics, setTrendingTopics] = useState<string[]>([]);
+  const [trendingLoading, setTrendingLoading] = useState<boolean>(false);
+  const [trendingError, setTrendingError] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [generatedPosts, setGeneratedPosts] = useState<GeneratedPost[]>([]);
@@ -385,6 +315,7 @@ const Index = () => {
       - Create TWO versions:
         1. Twitter version (max 280 characters, concise, no emojis)
         2. LinkedIn version (detailed, at least 1000 characters, up to 3000 characters, no emojis, in-depth, professional, and comprehensive; use multiple paragraphs, include an introduction, main points, and a conclusion)
+        - For the LinkedIn version, also include a link to the most relevant and recent real article or resource about the topic (do not make up links, search the web if possible, and place the link at the end of the post).
       - Add 3-5 relevant hashtags to both versions
       - For each version, also provide:
         - Best time to post (for maximum engagement, in IST - Indian Standard Time, UTC+5:30)
@@ -747,11 +678,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
   };
 
   const handleRefreshTrending = () => {
-    let newSet;
-    do {
-      newSet = trendingTopicsSets[Math.floor(Math.random() * trendingTopicsSets.length)];
-    } while (newSet === trendingTopics);
-    setTrendingTopics(newSet);
+    fetchTrendingTopics();
     setSelectedTopic(null);
     setSearchValue("");
   };
@@ -1028,6 +955,52 @@ Format the response as a JSON array of objects with these keys: platform, title,
     }
   };
 
+  // Fetch trending topics from Gemini 2.5-Flash
+  const fetchTrendingTopics = async () => {
+    setTrendingLoading(true);
+    setTrendingError(null);
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    const fallback = [
+      "Artificial Intelligence integration",
+      "AI-driven personalization",
+      "Generative AI tools",
+      "Machine Learning automation",
+      "ChatGPT enterprise adoption",
+      "AI content creation",
+      "Neural networks advancement",
+      "Robotics automation"
+    ];
+    try {
+      const prompt = `List the top 8 trending topics in technology and business on the internet right now. It is currently ${new Date().toISOString()}. Return only a JSON array of short topic strings, no explanations.`;
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 256 }
+          })
+        }
+      );
+      if (!response.ok) throw new Error('Failed to fetch trending topics');
+      const data = await response.json();
+      const text = data.candidates[0].content.parts[0].text;
+      const jsonMatch = text.match(/\[.*\]/s);
+      let topics: string[] = jsonMatch ? JSON.parse(jsonMatch[0]) : fallback;
+      if (!Array.isArray(topics) || topics.length === 0) topics = fallback;
+      setTrendingTopics(topics);
+    } catch (err) {
+      setTrendingTopics(fallback);
+      setTrendingError('Could not fetch trending topics. Showing defaults.');
+    } finally {
+      setTrendingLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTrendingTopics();
+  }, []);
+
   return (
     <>
       {showPinModal && (
@@ -1189,10 +1162,38 @@ Format the response as a JSON array of objects with these keys: platform, title,
                     <div className="flex items-center gap-2">
                       <TrendingUpIcon className="w-5 h-5 text-gray-700" />
                       <span className="text-lg font-semibold text-gray-900">Trending Topics</span>
-                        </div>
-                    <span className="text-sm text-gray-500">{trendingTopics.length} topics</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-500">{trendingTopics.length} topics</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={handleRefreshTrending}
+                              className="rounded-full p-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 focus:outline-none disabled:opacity-50"
+                              disabled={trendingLoading}
+                              aria-label="Refresh topics"
+                            >
+                              {trendingLoading ? (
+                                <RefreshCw className="w-4 h-4 animate-spin text-gray-700" />
+                              ) : (
+                                <RefreshCw className="w-4 h-4 text-gray-700" />
+                              )}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Refresh topics
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </div>
-
+                  {trendingLoading ? (
+                    <div className="flex items-center justify-center h-24 text-gray-400">Loading…</div>
+                  ) : trendingError ? (
+                    <div className="text-xs text-red-500 mb-2">{trendingError}</div>
+                  ) : null}
                   <div className="grid grid-cols-1 gap-3 overflow-y-auto max-h-[40vh] md:max-h-[50vh] lg:max-h-[60vh]">
                     {trendingTopics.map((topic, index) => (
                       <button
@@ -1221,8 +1222,8 @@ Format the response as a JSON array of objects with these keys: platform, title,
                         )}
                       </button>
                     ))}
-                        </div>
-                      </div>
+                  </div>
+                </div>
 
                 {/* Footer Badges */}
                 <div className="mt-8 pt-6 border-t border-gray-100">
@@ -1239,9 +1240,9 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       <Wand2 className="w-4 h-4 mr-2" />
                       Multi-Platform
                     </Badge>
-                        </div>
-                        </div>
-                      </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Right Side - Generated Posts */}
               <div className="w-1/2 flex-1 min-w-0 overflow-hidden">
@@ -1258,10 +1259,10 @@ Format the response as a JSON array of objects with these keys: platform, title,
                         {isSearching ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                         Regenerate All
                       </Button>
-                          )}
-                        </div>
+                    )}
+                  </div>
                   <span className="text-gray-500 text-sm block mt-1">Click a post to view details</span>
-                      </div>
+                </div>
                 <div className="grid grid-cols-2 gap-5">
                   {generatedPosts.slice(0, 6).map((post, idx) => (
                     <div
@@ -1272,7 +1273,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       <div className="flex items-center justify-between mb-1">
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${post.platform === 'LinkedIn' ? 'bg-black text-white' : 'bg-gray-200 text-gray-900'}`}>{post.platform}</span>
                         <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">{post.score}% Score</span>
-                        </div>
+                      </div>
                       <div className="font-bold text-base text-gray-900 mb-1">{post.title}</div>
                       <div className="text-gray-700 text-sm mb-2 line-clamp-2">{post.content}</div>
                       <div className="flex items-center gap-4 text-xs mb-2">
@@ -1285,9 +1286,9 @@ Format the response as a JSON array of objects with these keys: platform, title,
                         <span className="flex items-center gap-1 text-gray-700 font-semibold">
                           <span role="img" aria-label="comments">💬</span>{post.comments}
                         </span>
-                        </div>
-                      <div className="text-xs text-gray-400">Created: {post.created}</div>
                       </div>
+                      <div className="text-xs text-gray-400">Created: {post.created}</div>
+                    </div>
                   ))}
                   {/* Skeleton cards for posts still processing */}
                   {Array.from({ length: Math.max(0, 6 - generatedPosts.length) }).map((_, idx) => (
@@ -1295,7 +1296,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       <div className="flex items-center justify-between mb-1">
                         <div className="h-5 w-20 bg-gray-200 rounded-full" />
                         <div className="h-5 w-16 bg-gray-200 rounded-full" />
-                        </div>
+                      </div>
                       <div className="h-6 w-3/4 bg-gray-200 rounded mb-1" />
                       <div className="h-4 w-full bg-gray-200 rounded mb-2" />
                       <div className="flex items-center gap-4 text-xs mb-2">
@@ -1353,7 +1354,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                     ))}
                   </div>
                 )}
-                  </div>
+              </div>
 
               {/* Right Column */}
               <div className="flex flex-col gap-4 min-h-0">
@@ -1504,8 +1505,8 @@ Format the response as a JSON array of objects with these keys: platform, title,
                   <div className="text-xs text-gray-500 font-semibold">AI Insights</div>
                   <div className="flex flex-col gap-1 text-sm">
                     <span>Target Area: <b>{selectedPost.targetArea}</b></span>
-                    </div>
                   </div>
+                </div>
 
                 <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2">
                   <div className="text-xs text-gray-500 font-semibold">Performance</div>
@@ -1514,8 +1515,8 @@ Format the response as a JSON array of objects with these keys: platform, title,
                     <span>❤️ <b>{selectedPost.likes}</b> Likes</span>
                     <span>💬 <b>{selectedPost.comments}</b> Comments</span>
                     <span>🔁 <b>{selectedPost.shares}</b> Shares</span>
+                  </div>
                 </div>
-        </div>
 
                 <div className="flex gap-2 mt-auto pt-4">
                   <Button variant="outline" onClick={handleCopyLinkedIn} className="flex-1">Copy</Button>
@@ -1524,10 +1525,10 @@ Format the response as a JSON array of objects with these keys: platform, title,
                     {isRegeneratingPost ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}Regenerate
                   </Button>
                   <Button onClick={handleSharePost} className="flex-1 bg-black text-white hover:bg-gray-900">Post Now</Button>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
         </div>
       )}
     </>
