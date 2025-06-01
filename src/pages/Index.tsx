@@ -63,7 +63,7 @@ interface GeneratedPost {
 }
 
 // Helper function to call Google Image API
-async function generateImage(prompt: string, apiKey: string): Promise<{ image: string | null, caption: string }> {
+async function generateImage(prompt: string, apiKey: string, platform?: string): Promise<{ image: string | null, caption: string }> {
   try {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`,
@@ -75,13 +75,12 @@ async function generateImage(prompt: string, apiKey: string): Promise<{ image: s
             {
               role: "user",
               parts: [
-                { text: `Read the following social media post content and generate a single, visually appealing image that perfectly represents the main idea, theme, or message of the post. The image must be in the style of Studio Ghibli (soft, whimsical, detailed, and storybook-like). Use only these colors (with different opacities): #161616, #1E342F, #2B2521, #495663, #97A487, #A8B0B8, #A9A9A9, #B7A694, #B7BEAE, #C6AEA3, #CFD2D4, #CFD4C9, #D0C3B5, #E3E2DF, #F8F7F3. The image should be highly relevant and suitable for sharing with the post on social media. Also provide a very short caption for the image (5 words or less).\n\nPost content:\n${prompt}` }
+                { text: `Read the following social media post content and generate a single, highly professional, visually compelling image that directly and clearly represents the main idea, theme, or message of the post.\n\n- The image must be contextually accurate and suitable for sharing on ${platform || '[LinkedIn/Twitter]'} (choose based on the post).\n- Avoid generic or unrelated visuals; focus on the specific subject, audience, and intent of the post.\n- The style should be clean, modern, and business-appropriate, with a strong visual connection to the post's content.\n- Use only these colors (with different opacities): #161616, #1E342F, #2B2521, #495663, #97A487, #A8B0B8, #A9A9A9, #B7A694, #B7BEAE, #C6AEA3, #CFD2D4, #CFD4C9, #D0C3B5, #E3E2DF, #F8F7F3.\n- ghibli studio effect\n\nAlso provide a very short, professional caption for the image (5 words or less).\n\nPost content:\n${prompt}` }
               ]
             }
           ],
           generation_config: {
-            // Corrected parameter name: response_modalities
-            response_modalities: ["IMAGE", "TEXT"] // Request both image and text
+            response_modalities: ["IMAGE", "TEXT"]
           }
         })
       }
@@ -330,6 +329,17 @@ const Index = () => {
     if (val && idx < 3) {
       pinRefs[idx + 1].current?.focus();
     }
+
+    // Auto-submit if 4 digits are entered and correct
+    if (pinStr.length === 4 && pinStr === "0457") {
+      setShowPinModal(false);
+      setPinError("");
+      setShakeModal(false);
+    } else if (pinStr.length === 4 && pinStr !== "0457") {
+      setPinError("Incorrect PIN. Please try again.");
+      setShakeModal(true);
+      setTimeout(() => setShakeModal(false), 500);
+    }
   };
   const handlePinBoxKeyDown = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Backspace" && !pinInput[idx] && idx > 0) {
@@ -460,8 +470,8 @@ const Index = () => {
         setIsImageLoading({twitter: !!imagePromptTwitter, linkedin: !!imagePromptLinkedin});
         setTimeout(async () => {
           const [twitterResult, linkedinResult] = await Promise.all([
-            imagePromptTwitter ? generateImage(imagePromptTwitter, apiKey) : Promise.resolve({ image: null, caption: '' }),
-            imagePromptLinkedin ? generateImage(imagePromptLinkedin, apiKey) : Promise.resolve({ image: null, caption: '' }),
+            imagePromptTwitter ? generateImage(imagePromptTwitter, apiKey, 'Twitter') : Promise.resolve({ image: null, caption: '' }),
+            imagePromptLinkedin ? generateImage(imagePromptLinkedin, apiKey, 'LinkedIn') : Promise.resolve({ image: null, caption: '' }),
           ]);
           setGeneratedContent(prev => prev && {
             ...prev,
@@ -675,7 +685,7 @@ const Index = () => {
 - likes: (a number between 20 and 45)
 - comments: (a number between 5 and 10)
 - shares: (number)
-- hashtags: (array of 2-4 relevant hashtags)
+- hashtags: (array of 8-9 relevant hashtags)
 - score: (as a percentage, e.g. 94)
 - engagementPotential: (as a percentage, e.g. 94)
 - bestTime: (best time to post, e.g. 9:00 AM - 11:00 AM)
@@ -703,10 +713,10 @@ Format the response as a JSON array of objects with these keys: platform, title,
       // Generate images for each post and display them one by one
       for (const post of posts) {
         let imagePrompt = post.content;
-        let imgResult = await generateImage(imagePrompt, apiKey);
+        let imgResult = await generateImage(imagePrompt, apiKey, post.platform);
         // Retry once with a fallback prompt if image generation fails
         if (!imgResult.image) {
-          imgResult = await generateImage('Create a visually appealing image for a social media post. ' + post.content, apiKey);
+          imgResult = await generateImage('Create a visually appealing image for a social media post. ' + post.content, apiKey, post.platform);
         }
         // Use a placeholder if still no image
         const placeholder =
@@ -880,7 +890,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
       } else if (selectedPost.platform === 'LinkedIn') {
         prompt += '\nThe image must be portrait (3:4 aspect ratio).';
       }
-      const imgResult = await generateImage(prompt, apiKey);
+      const imgResult = await generateImage(prompt, apiKey, selectedPost.platform);
       setSelectedPost({ ...selectedPost, imageUrl: imgResult.image || '', imageCaption: imgResult.caption || '' });
       toast({
         title: "Image Regenerated!",
@@ -996,8 +1006,8 @@ Format the response as a JSON array of objects with these keys: platform, title,
             <div className="relative mb-6">
               <div className="absolute inset-0 bg-black/5 rounded-full blur-xl"></div>
               <Lock className="lock-icon w-10 h-10 text-black relative z-10" />
-            </div>
-            
+        </div>
+
             <h2 className="text-2xl font-bold mb-6 tracking-wide text-black">
               Enter Security PIN
             </h2>
@@ -1020,8 +1030,8 @@ Format the response as a JSON array of objects with these keys: platform, title,
                   autoFocus={idx === 0}
                 />
               ))}
-            </div>
-            
+              </div>
+
             {pinError && (
               <div className="text-black text-sm mb-4 font-medium flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1031,12 +1041,12 @@ Format the response as a JSON array of objects with these keys: platform, title,
               </div>
             )}
             
-            <Button 
+            {/* <Button 
               type="submit" 
               className="w-full mt-2 text-lg py-3 bg-black hover:bg-gray-900 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
             >
               Verify PIN
-            </Button>
+            </Button> */}
             
             <p className="text-xs text-gray-500 mt-4">
               Enter the 4-digit PIN to access the application
@@ -1045,18 +1055,18 @@ Format the response as a JSON array of objects with these keys: platform, title,
         </div>
       )}
       {!showPinModal && (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-          <div className="max-w-[1600px] w-full mx-auto">
+        <div className="min-h-screen bg-[#F6F5F3] flex flex-col">
+          <div className="max-w-[1600px] w-full mx-auto flex-1">
             <div className="text-center mt-2 mt-9 mb-8">
           <div className="flex items-center justify-center mb-4">
             <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent">
-              Social Spark
+              Spark
             </h1>
           </div>
               <p className="text-gray-400 text-lg">
             AI-powered social media content generator
           </p>
-        </div>
+              </div>
 
             {/* Split Screen Layout */}
             <div className="flex gap-6 px-4">
@@ -1183,15 +1193,15 @@ Format the response as a JSON array of objects with these keys: platform, title,
                 {/* Footer Badges */}
                 <div className="mt-8 pt-6 border-t border-gray-100">
                   <div className="flex justify-center gap-4">
-                    <Badge variant="secondary" className="bg-black text-white px-5 py-2 text-sm font-medium">
+                    <Badge variant="secondary" className="bg-black text-white px-5 py-2 text-sm font-medium !hover:bg-black !hover:text-white">
                       <Sparkles className="w-4 h-4 mr-2" />
                       AI-Powered
                     </Badge>
-                    <Badge variant="secondary" className="bg-black text-white px-5 py-2 text-sm font-medium">
+                    <Badge variant="secondary" className="bg-black text-white px-5 py-2 text-sm font-medium !hover:bg-black !hover:text-white">
                       <Users className="w-4 h-4 mr-2" />
                       Human-like
                     </Badge>
-                    <Badge variant="secondary" className="bg-black text-white px-5 py-2 text-sm font-medium">
+                    <Badge variant="secondary" className="bg-black text-white px-5 py-2 text-sm font-medium !hover:bg-black !hover:text-white">
                       <Wand2 className="w-4 h-4 mr-2" />
                       Multi-Platform
                     </Badge>
@@ -1204,7 +1214,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                 <div className="mb-6 flex items-center justify-between">
                   <span className="text-xl font-semibold text-black">Recommended Posts</span>
                   <span className="text-gray-500 text-sm">Click a post to view details</span>
-                </div>
+                        </div>
                 <div className="grid grid-cols-2 gap-5">
                   {generatedPosts.slice(0, 6).map((post, idx) => (
                     <div
@@ -1215,7 +1225,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       <div className="flex items-center justify-between mb-1">
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${post.platform === 'LinkedIn' ? 'bg-black text-white' : 'bg-gray-200 text-gray-900'}`}>{post.platform}</span>
                         <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">{post.score}% Score</span>
-                      </div>
+                        </div>
                       <div className="font-bold text-base text-gray-900 mb-1">{post.title}</div>
                       <div className="text-gray-700 text-sm mb-2 line-clamp-2">{post.content}</div>
                       <div className="flex items-center gap-4 text-xs mb-2">
@@ -1230,7 +1240,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                         </span>
                       </div>
                       <div className="text-xs text-gray-400">Created: {post.created}</div>
-                    </div>
+                        </div>
                   ))}
                   {/* Skeleton cards for posts still processing */}
                   {Array.from({ length: Math.max(0, 6 - generatedPosts.length) }).map((_, idx) => (
@@ -1238,7 +1248,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       <div className="flex items-center justify-between mb-1">
                         <div className="h-5 w-20 bg-gray-200 rounded-full" />
                         <div className="h-5 w-16 bg-gray-200 rounded-full" />
-                      </div>
+                        </div>
                       <div className="h-6 w-3/4 bg-gray-200 rounded mb-1" />
                       <div className="h-4 w-full bg-gray-200 rounded mb-2" />
                       <div className="flex items-center gap-4 text-xs mb-2">
@@ -1254,6 +1264,17 @@ Format the response as a JSON array of objects with these keys: platform, title,
               </div>
             </div>
           </div>
+          <footer className="w-full border-t border-gray-200 bg-[#F6F5F3] py-8 mt-8">
+            <div className="max-w-[1600px] mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+              <div>
+                <span className="font-bold text-lg text-gray-900">Spart</span>
+                <span className="block text-gray-500 text-sm mt-1">AI-powered social media content generator</span>
+              </div>
+              <div className="text-xs text-gray-400 mt-2 md:mt-0 w-full md:w-auto text-center md:text-right">
+                © 2025 neuralarc. All rights reserved. A thing by Neuralarc
+              </div>
+            </div>
+          </footer>
         </div>
       )}
       {isModalOpen && selectedPost && (
@@ -1314,16 +1335,16 @@ Format the response as a JSON array of objects with these keys: platform, title,
                           <div className="flex items-center gap-x-3 min-w-0 overflow-x-auto">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button
+                    <Button 
                                   onClick={handleVoiceInputForPrompt}
                                   disabled={listening}
-                                  variant="outline"
+                      variant="outline"
                                   size="icon"
                                   className="rounded-full min-w-0"
                                   aria-label="Voice Input"
                                 >
                                   <Mic className={`w-5 h-5${listening ? ' animate-pulse' : ''}`} />
-                                </Button>
+                    </Button>
                               </TooltipTrigger>
                               <TooltipContent>
                                 Use voice to fill the prompt
@@ -1331,17 +1352,17 @@ Format the response as a JSON array of objects with these keys: platform, title,
                             </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button 
+                    <Button 
                                   onClick={() => {
                                     setCustomImagePrompt(selectedPost.content);
                                   }}
                                   disabled={isRegeneratingImage}
-                                  variant="outline"
+                      variant="outline"
                                   className="flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
-                                >
+                    >
                                   <Wand2 className="w-4 h-4 mr-2" />
                                   <span>Use Text</span>
-                                </Button>
+                    </Button>
                               </TooltipTrigger>
                               <TooltipContent>
                                 Generate image using post content as prompt
@@ -1349,7 +1370,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                             </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button 
+                        <Button 
                                   onClick={async () => {
                                     setIsEnhancingPrompt(true);
                                     try {
@@ -1383,7 +1404,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                                     <Sparkles className="w-4 h-4 mr-2" />
                                   )}
                                   <span>Enhance</span>
-                                </Button>
+                        </Button>
                               </TooltipTrigger>
                               <TooltipContent>
                                 Rephrase and enhance the prompt using AI
@@ -1391,7 +1412,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                             </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button 
+                        <Button 
                                   onClick={handleRegenerateImage}
                                   disabled={isRegeneratingImage}
                                   className="bg-black text-white hover:bg-gray-900 flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
@@ -1402,25 +1423,25 @@ Format the response as a JSON array of objects with these keys: platform, title,
                                     <RefreshCw className="w-4 h-4 mr-2" />
                                   )}
                                   <span>Generate</span>
-                                </Button>
+                        </Button>
                               </TooltipTrigger>
                               <TooltipContent>
                                 Generate new image with current prompt
                               </TooltipContent>
                             </Tooltip>
-                          </div>
-                        </TooltipProvider>
                       </div>
+                        </TooltipProvider>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
                 <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2">
                   <div className="text-xs text-gray-500 font-semibold">AI Insights</div>
                   <div className="flex flex-col gap-1 text-sm">
                     <span>Target Area: <b>{selectedPost.targetArea}</b></span>
                     </div>
-                  </div>
+        </div>
 
                 <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2">
                   <div className="text-xs text-gray-500 font-semibold">Performance</div>
@@ -1429,15 +1450,15 @@ Format the response as a JSON array of objects with these keys: platform, title,
                     <span>❤️ <b>{selectedPost.likes}</b> Likes</span>
                     <span>💬 <b>{selectedPost.comments}</b> Comments</span>
                     <span>🔁 <b>{selectedPost.shares}</b> Shares</span>
-                </div>
+          </div>
         </div>
 
                 <div className="flex gap-2 mt-auto pt-4">
                   <Button onClick={handleSharePost} className="flex-1 bg-black text-white hover:bg-gray-900">Post Now</Button>
                   <Button variant="outline" onClick={handleCopyLinkedIn} className="flex-1">Copy</Button>
                   <Button variant="outline" onClick={handleHumanizeModal} className="flex-1">Humanize</Button>
-          </div>
-        </div>
+      </div>
+    </div>
       </div>
     </div>
         </div>
