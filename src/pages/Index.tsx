@@ -1004,11 +1004,11 @@ Format the response as a JSON array of objects with these keys: platform, title,
   return (
     <>
       {showPinModal && (
-        <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'url(/pin-bg.png) center center / cover no-repeat' }}>
+        <div className="fixed inset-0 flex flex-col items-center justify-center" style={{ background: 'url(/pin-bg.png) center center / cover no-repeat' }}>
           <style>{styles}</style>
           <form 
             onSubmit={handlePinSubmit} 
-            className={`pin-modal bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center min-w-[360px] ${shakeModal ? 'shake' : ''}`}
+            className={`pin-modal bg-white/30  rounded-2xl shadow-2xl p-8 flex flex-col items-center min-w-[360px] ${shakeModal ? 'shake' : ''}`}
           >
             <div className="relative mb-6">
               <Lock className="lock-icon w-10 h-10 text-black relative z-10" />
@@ -1018,7 +1018,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
               Enter Security PIN
             </h2>
             
-            <div className="flex gap-4 mb-6">
+            <div className="flex gap-4 pr-4 pl-4 mb-6">
               {pinDigits.map((_, idx) => (
                 <input
                   key={idx}
@@ -1026,10 +1026,9 @@ Format the response as a JSON array of objects with these keys: platform, title,
                   type="password"
                   inputMode="numeric"
                   maxLength={1}
-                  className={`pin-input w-14 h-16 text-center text-3xl border-2 rounded-xl outline-none transition-all duration-200
-                    ${pinError ? 'error' : 'border-gray-200 hover:border-black'}
-                    ${filledInputs[idx] ? 'filled' : ''}
-                    focus:border-black bg-white font-mono shadow-sm`}
+                  className={`w-24 h-24 text-center text-4xl rounded-lg outline-none transition-allduration-200 bg-white font-mono
+                    ${filledInputs[idx] ? 'bg-white' : ''}
+                  `}
                   value={pinInput[idx] || ""}
                   onChange={e => handlePinDigitChange(idx, e.target.value)}
                   onKeyDown={e => handlePinBoxKeyDown(idx, e)}
@@ -1051,10 +1050,14 @@ Format the response as a JSON array of objects with these keys: platform, title,
               Enter the 4-digit PIN to access the application
             </p>
           </form>
+          <div className="mt-10 text-center text-black text-lg font-medium select-none flex items-center justify-center gap-2">
+            <span>Spark, A Thing By NeuralArc</span>
+            <img src="/neuralarc-logo.png" alt="NeuralArc Logo" className="h-6 w-auto invert" />
+          </div>
         </div>
       )}
       {!showPinModal && (
-        <div className="min-h-screen flex flex-col bg-[#F6F5F3]">
+        <div className="min-h-screen flex flex-col" style={{ background: 'url(/main-bg.png) center center / cover no-repeat' }}>
           <div className="max-w-[1600px] w-full mx-auto flex-1 flex flex-col mb-12">
             <div className="text-center mt-2 mt-9 mb-8">
           <div className="flex items-center justify-center mb-4">
@@ -1062,86 +1065,86 @@ Format the response as a JSON array of objects with these keys: platform, title,
               Spark
             </h1>
           </div>
-              <p className="text-gray-400 text-lg">
+              <p className="text-black text-lg">
             AI-powered social media content generator
           </p>
-              </div>
+        </div>
 
             {/* Split Screen Layout */}
-            <div className="flex gap-6 px-4 flex-1 overflow-hidden max-h-[calc(100vh-301px)]">
+            <div className="flex gap-6 px-4 flex-1 overflow-hidden max-h-[calc(100vh-200px)] h-full">
               {/* Left Side - Industry Trend Discovery */}
-              <div className="w-1/2 bg-white rounded-2xl shadow-lg border border-gray-100 p-8 flex flex-col flex-1 min-w-0 overflow-hidden">
-                <div className="mb-8">
+              <div className="w-1/2 bg-white/50 rounded-2xl shadow-lg p-8 flex flex-col flex-1 min-w-0 overflow-hidden h-full justify-between">
+                <div>
                   <div className="flex items-center gap-2 mb-6">
-                    <Search className="w-6 h-6 text-gray-700" />
+                    
                     <span className="text-2xl font-semibold text-gray-900">Industry Trend Discovery</span>
               </div>
 
                   {/* Search Section */}
                   <div className="space-y-4">
                     <div className="space-y-4">
-                      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 flex flex-col" style={{ boxShadow: '0 4px 24px 0 rgba(0,0,0,0.04)' }}>
-                        <label htmlFor="search-textarea" className="block text-gray-700 text-base font-semibold mb-2">
-                          What are you looking for?
-                        </label>
-                <Textarea
-                          id="search-textarea"
-                          value={searchValue}
-                          onChange={e => setSearchValue(e.target.value)}
-                          placeholder="Type a topic, keyword, or trend…"
-                          className="w-full min-h-[90px] max-h-[180px] text-base rounded-xl border border-gray-200 bg-gray-50 focus:border-black focus:bg-white px-6 py-4 shadow-sm transition-all duration-200 resize-none mb-2 font-sans text-gray-900 placeholder:text-gray-400"
-                        />
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs text-gray-400 font-medium">Type a topic or keyword to discover trends</span>
-                          <div className="flex items-center gap-3">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    type="button"
-                                    className="rounded-full bg-gray-100 hover:bg-gray-200 focus:bg-gray-200 p-3 transition-colors border border-gray-200 focus:outline-none shadow-sm"
-                                    onClick={handleRephrase}
-                                    aria-label="Rephrase"
-                                    disabled={rephrasing}
-                                  >
-                                    <Wand2 className={`w-5 h-5 text-gray-700${rephrasing ? ' animate-spin-custom' : ''}`} style={rephrasing ? { animation: 'spin 1s linear infinite' } : {}} />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Rephrase</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    type="button"
-                                    className={`rounded-full bg-gray-100 hover:bg-gray-200 focus:bg-gray-200 p-3 transition-colors border border-gray-200 focus:outline-none shadow-sm${listening ? ' animate-pulse' : ''}`}
-                                    onClick={handleVoiceInputForPrompt}
-                                    aria-label="Voice Input"
-                                    disabled={listening}
-                                  >
-                                    <Mic className={`w-5 h-5 text-gray-700${listening ? ' animate-pulse' : ''}`} />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Voice Input</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-              <Button 
-                              className="h-12 px-6 bg-black text-white rounded-xl text-base font-semibold hover:bg-gray-900 transition-all duration-200 ml-2 shadow-lg flex items-center gap-2"
-                              onClick={handleSearch}
-                              disabled={isSearching}
-              >
-                              {isSearching ? (
-                                <RefreshCw className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                                  Generate Content <ArrowUpRight className="w-5 h-5" />
-                  </>
-                )}
-              </Button>
-                        </div>
+                      <div className="bg-[#F7F6F3] rounded-2xl shadow-md p-8 flex flex-col" style={{ boxShadow: '0 4px 24px 0 rgba(0,0,0,0.04)', borderImage: 'url(/main-bg.png) 30 round', borderWidth: '17.29px', height: '260px' }}>
+                        <div className="flex flex-col flex-1">
+                          <Textarea
+                            id="search-textarea"
+                            value={searchValue}
+                            onChange={e => setSearchValue(e.target.value)}
+                            placeholder="Type a topic, keyword, or trend…"
+                            className="w-full h-full text-base rounded-xl border border-gray-200 bg-[#F7F6F3] focus:border-black focus:bg-white px-6 py-4 shadow-none transition-all duration-200 resize-none mb-2 font-sans text-gray-900 placeholder:text-gray-400 flex-1"
+                            style={{ minHeight: 0 }}
+                          />
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-gray-400 font-medium">Type a topic or keyword to discover trends</span>
+                            <div className="flex items-center gap-3">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="rounded-full bg-gray-100 hover:bg-gray-200 focus:bg-gray-200 p-3 transition-colors border-none focus:outline-none shadow-none"
+                                      onClick={handleRephrase}
+                                      aria-label="Rephrase"
+                                      disabled={rephrasing}
+                                    >
+                                      <Wand2 className={`w-5 h-5 text-gray-700${rephrasing ? ' animate-spin-custom' : ''}`} style={rephrasing ? { animation: 'spin 1s linear infinite' } : {}} />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Rephrase</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className={`rounded-full bg-gray-100 hover:bg-gray-200 focus:bg-gray-200 p-3 transition-colors border-none focus:outline-none shadow-none${listening ? ' animate-pulse' : ''}`}
+                                      onClick={handleVoiceInputForPrompt}
+                                      aria-label="Voice Input"
+                                      disabled={listening}
+                                    >
+                                      <Mic className={`w-5 h-5 text-gray-700${listening ? ' animate-pulse' : ''}`} />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Voice Input</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <Button 
+                                className="h-12 px-8 bg-black text-white rounded-xl text-base font-semibold hover:bg-gray-900 transition-all duration-200 ml-2 shadow-none flex items-center gap-2"
+                                onClick={handleSearch}
+                                disabled={isSearching}
+                              >
+                                {isSearching ? (
+                                  <RefreshCw className="w-5 h-5 animate-spin" />
+                                ) : (
+                                  <>
+                                    Generate Content <ArrowUpRight className="w-5 h-5" />
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                         </div>
@@ -1149,90 +1152,69 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       </div>
 
                 {/* Trending Topics Section */}
-                <div className="flex-1 pr-2">
-                  <div className="flex  items-center justify-between mb-6">
-                    <div className="flex items-center gap-2">
-                      <TrendingUpIcon className="w-5 h-5 text-gray-700" />
-                      <span className="text-lg font-semibold text-gray-900">Trending Topics</span>
+                <div className="">
+                  <div className="bg-transparent rounded-xl shadow p-4 mb-4 h-full flex flex-col">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <TrendingUpIcon className="w-6 h-6 text-gray-700" />
+                        <span className="text-lg font-semibold text-gray-900">Trending Topics</span>
                         </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500">{trendingTopics.length} topics</span>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              onClick={handleRefreshTrending}
-                              className="rounded-full p-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 focus:outline-none disabled:opacity-50"
-                              disabled={trendingLoading}
-                              aria-label="Refresh topics"
-                            >
-                              {trendingLoading ? (
-                                <RefreshCw className="w-4 h-4 animate-spin text-gray-700" />
-                              ) : (
-                                <RefreshCw className="w-4 h-4 text-gray-700" />
-                              )}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Refresh topics
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500">{trendingTopics.length} topics</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={handleRefreshTrending}
+                                className="rounded-full p-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 focus:outline-none disabled:opacity-50"
+                                disabled={trendingLoading}
+                                aria-label="Refresh topics"
+                              >
+                                {trendingLoading ? (
+                                  <RefreshCw className="w-4 h-4 animate-spin text-gray-700" />
+                                ) : (
+                                  <RefreshCw className="w-4 h-4 text-gray-700" />
+                                )}
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Refresh topics
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         </div>
                       </div>
-                  {trendingLoading ? (
-                    <div className="flex items-center justify-center h-24 text-gray-400">Loading…</div>
-                  ) : trendingError ? (
-                    <div className="text-xs text-red-500 mb-2">{trendingError}</div>
-                  ) : null}
-                  <div className="grid grid-cols-1 gap-3  overflow-y-auto">
-                    {trendingTopics.map((topic, index) => (
-                      <button
-                        key={topic}
-                        type="button"
-                        onClick={() => { setSearchValue(topic); setSelectedTopic(topic); }}
-                        className={`group relative flex items-center gap-3 px-5 py-4 rounded-xl border text-base font-medium transition-all duration-200
-                          ${selectedTopic === topic 
-                            ? 'bg-black text-white border-black shadow-lg transform -translate-y-0.5' 
-                            : 'bg-white text-gray-800 border-gray-200 hover:border-black hover:bg-gray-50'
-                          }
-                        `}
-                      >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors
-                          ${selectedTopic === topic ? 'bg-white/10' : 'bg-gray-100 group-hover:bg-gray-200'}`}
+                    <div className="grid grid-cols-1 gap-3 flex-1 overflow-y-auto">
+                      {trendingTopics.map((topic, index) => (
+                        <button
+                          key={topic}
+                          type="button"
+                          onClick={() => { setSearchValue(topic); setSelectedTopic(topic); }}
+                          className={`group relative flex items-center gap-3 px-5 py-4 rounded-xl border text-base font-medium transition-all duration-200
+                            ${selectedTopic === topic 
+                              ? 'bg-black text-white border-black shadow-lg transform -translate-y-0.5' 
+                              : 'bg-white text-gray-800 border-gray-200 hover:border-black hover:bg-gray-50'
+                            }
+                          `}
                         >
-                          <span className="text-sm font-medium">{index + 1}</span>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors
+                            ${selectedTopic === topic ? 'bg-white/10' : 'bg-gray-100 group-hover:bg-gray-200'}`}
+                          >
+                            <span className="text-sm font-medium">{index + 1}</span>
                         </div>
-                        <span className="text-left flex-1">{topic}</span>
-                        {selectedTopic === topic && (
-                          <div className="absolute right-4">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                            </svg>
+                          <span className="text-left flex-1">{topic}</span>
+                          {selectedTopic === topic && (
+                            <div className="absolute right-4">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                              </svg>
                         </div>
-                        )}
-                      </button>
-                    ))}
+                          )}
+                        </button>
+                      ))}
                       </div>
-                </div>
-
-                {/* Footer Badges */}
-                <div className="mt-8 pt-6 border-t border-gray-100">
-                  <div className="flex justify-center gap-4">
-                    <Badge variant="secondary" className="bg-black text-white px-5 py-2 text-sm font-medium !hover:bg-black !hover:text-white">
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      AI-Powered
-                    </Badge>
-                    <Badge variant="secondary" className="bg-black text-white px-5 py-2 text-sm font-medium !hover:bg-black !hover:text-white">
-                      <Users className="w-4 h-4 mr-2" />
-                      Human-like
-                    </Badge>
-                    <Badge variant="secondary" className="bg-black text-white px-5 py-2 text-sm font-medium !hover:bg-black !hover:text-white">
-                      <Wand2 className="w-4 h-4 mr-2" />
-                      Multi-Platform
-                    </Badge>
-                        </div>
+                  </div>
                 </div>
               </div>
 
@@ -1242,15 +1224,15 @@ Format the response as a JSON array of objects with these keys: platform, title,
                   <div className="flex items-center justify-between">
                     <span className="text-xl font-semibold text-black">Recommended Posts</span>
                     {generatedPosts.length > 0 && (
-                      <Button
-                        variant="outline"
+                    <Button 
+                      variant="outline"
                         onClick={handleRefreshPosts}
                         disabled={isSearching}
                         className="flex items-center gap-2"
                       >
                         {isSearching ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                         Regenerate All
-                      </Button>
+                    </Button>
                           )}
                         </div>
                   <span className="text-gray-500 text-sm block mt-1">Click a post to view details</span>
@@ -1259,28 +1241,31 @@ Format the response as a JSON array of objects with these keys: platform, title,
                   {generatedPosts.slice(0, 6).map((post, idx) => (
                     <div
                       key={idx}
-                      className={`bg-white rounded-xl shadow border border-gray-100 p-6 flex flex-col gap-2 cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1`}
+                      className={`bg-white rounded-xl shadow border border-gray-100 p-6 flex flex-col gap-2 cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 h-full relative`}
+                      style={{ minHeight: '340px' }}
                       onClick={() => handleCardClick(post as GeneratedPost)}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${post.platform === 'LinkedIn' ? 'bg-black text-white' : 'bg-gray-200 text-gray-900'}`}>{post.platform}</span>
-                        <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">{post.score}% Score</span>
+                      <div className="flex flex-col flex-1 min-h-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${post.platform === 'LinkedIn' ? 'bg-black text-white' : 'bg-gray-200 text-gray-900'}`}>{post.platform}</span>
+                          <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">{post.score}% Score</span>
                         </div>
-                      <div className="font-bold text-base text-gray-900 mb-1">{post.title}</div>
-                      <div className="text-gray-700 text-sm mb-2 line-clamp-2">{post.content}</div>
-                      <div className="flex items-center gap-4 text-xs mb-2">
-                        <span className="flex items-center gap-1 text-gray-700 font-semibold">
-                          <span role="img" aria-label="reach">👁️</span>{post.reach}
-                        </span>
-                        <span className="flex items-center gap-1 text-gray-700 font-semibold">
-                          <span role="img" aria-label="likes">❤️</span>{post.likes}
-                        </span>
-                        <span className="flex items-center gap-1 text-gray-700 font-semibold">
-                          <span role="img" aria-label="comments">💬</span>{post.comments}
-                        </span>
+                        <div className="font-bold text-base text-gray-900 mb-1">{post.title}</div>
+                        <div className="text-gray-700 text-sm mb-2 line-clamp-2 overflow-y-auto flex-1">{post.content}</div>
+                        <div className="flex items-center gap-4 text-xs mb-2">
+                          <span className="flex items-center gap-1 text-gray-700 font-semibold">
+                            <span role="img" aria-label="reach">👁️</span>{post.reach}
+                          </span>
+                          <span className="flex items-center gap-1 text-gray-700 font-semibold">
+                            <span role="img" aria-label="likes">❤️</span>{post.likes}
+                          </span>
+                          <span className="flex items-center gap-1 text-gray-700 font-semibold">
+                            <span role="img" aria-label="comments">💬</span>{post.comments}
+                          </span>
                         </div>
-                      <div className="text-xs text-gray-400">Created: {post.created}</div>
+                        <div className="text-xs text-gray-400">Created: {post.created}</div>
                       </div>
+                    </div>
                   ))}
                   {/* Skeleton cards for posts still processing */}
                   {Array.from({ length: Math.max(0, 6 - generatedPosts.length) }).map((_, idx) => (
@@ -1304,16 +1289,16 @@ Format the response as a JSON array of objects with these keys: platform, title,
               </div>
             </div>
           </div>
-          <footer className="w-full border-t border-gray-200 bg-[#F6F5F3] py-8 mt-auto">
+          <footer className="w-full border-t border-gray-200 bg-black py-3 mt-auto">
             <div className="max-w-[1600px] mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
               <div>
-                <span className="font-bold text-lg text-black">Spark</span>
-                <span className="block text-black text-sm mt-1">AI-powered social media content generator</span>
+                <span className="font-bold text-lg text-white">Spark</span>
+                <span className="block text-white text-sm mt-1">AI-powered social media content generator</span>
               </div>
-              <div className="text-xs text-black mt-2 md:mt-0 w-full md:w-auto text-center md:text-right flex items-center justify-center md:justify-end">
+              <div className="text-xs text-white mt-2 md:mt-0 w-full md:w-auto text-center md:text-right flex items-center justify-center md:justify-end">
                 Copyright 2025. All rights reserved. Spark, A thing by NeuralArc
                 <a href="https://www.neuralarc.ai/" target="_blank" rel="noopener noreferrer" className="ml-2 inline-block align-middle">
-                  <img src="/neuralarc-logo.png" alt="Neuralarc Logo" style={{ height: '28px', display: 'inline-block', verticalAlign: 'middle', filter: 'invert(1)' }} />
+                  <img src="/neuralarc-logo.png" alt="Neuralarc Logo" style={{ height: '28px', display: 'inline-block', verticalAlign: 'middle' }} />
                 </a>
               </div>
             </div>
@@ -1401,7 +1386,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                               size="icon"
                               className="rounded-full min-w-0"
                               aria-label="Voice Input"
-                            >
+                    >
                               <Mic className={`w-5 h-5${listening ? ' animate-pulse' : ''}`} />
                     </Button>
                           </TooltipTrigger>
@@ -1411,7 +1396,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                    <Button 
+                        <Button 
                               onClick={() => {
                                 setCustomImagePrompt(selectedPost.content);
                               }}
@@ -1421,7 +1406,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                     >
                               <Wand2 className="w-4 h-4 mr-2" />
                               <span>Use Text</span>
-                    </Button>
+                        </Button>
                           </TooltipTrigger>
                           <TooltipContent>
                             Generate image using post content as prompt
