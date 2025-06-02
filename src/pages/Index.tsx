@@ -1268,7 +1268,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                     </div>
                   ))}
                   {/* Skeleton cards for posts still processing */}
-                  {Array.from({ length: Math.max(0, 6 - generatedPosts.length) }).map((_, idx) => (
+                  {Array.from({ length: Math.max(0, 4 - generatedPosts.length) }).map((_, idx) => (
                     <div key={`skeleton-${idx}`} className="bg-white rounded-xl shadow border border-gray-100 p-6 flex flex-col gap-2 animate-pulse">
                       <div className="flex items-center justify-between mb-1">
                         <div className="h-5 w-20 bg-gray-200 rounded-full" />
