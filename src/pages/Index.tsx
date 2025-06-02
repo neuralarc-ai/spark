@@ -611,7 +611,7 @@ const Index = () => {
     setExpectedPosts(4); // We always generate 4 posts
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      const prompt = `Generate 4 social media posts (2 for LinkedIn, 2 for Twitter) for the topic: "${searchValue}". For each post, provide the following fields:
+      const prompt = `Generate 4 social media posts (2 for LinkedIn, 2 for Twitter) for the topic: "${searchValue}". The tone and style of each post should be as if written by a CEO or founder of a technology company: visionary, insightful, authoritative, and inspiring, with a focus on leadership, innovation, and industry impact. Avoid jargon, but use confident, forward-thinking language. For each post, provide the following fields:
 - platform: (LinkedIn or Twitter)
 - title: (catchy, max 60 chars)
 - content: (for LinkedIn: detailed, multi-paragraph, professional, 800-1500 characters, and must start with a heading in the format 'Heading: ...' on the first line, then a blank line, then the body; for Twitter: concise, max 280 characters)
