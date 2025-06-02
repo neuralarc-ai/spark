@@ -313,7 +313,7 @@ const Index = () => {
       
       Requirements:
       - Create TWO versions:
-        1. Twitter version (max 280 characters, concise, no emojis)
+        1. Twitter version (max 280 characters, concise, no emojis, use tweet language, opinion language, and make it sound like a real person sharing their thoughts or opinion; use natural, conversational, and human-like language, but keep it professional)
         2. LinkedIn version (detailed, at least 1000 characters, up to 3000 characters, no emojis, in-depth, professional, and comprehensive; use multiple paragraphs, include an introduction, main points, and a conclusion)
         - For the LinkedIn version, also include a link to the most relevant and recent real article or resource about the topic (do not make up links, search the web if possible, and place the link at the end of the post).
       - Add 3-5 relevant hashtags to both versions
@@ -1059,7 +1059,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
       {!showPinModal && (
         <div className="min-h-screen flex flex-col" style={{ background: 'url(/main-bg.png) center center / cover no-repeat' }}>
           <div className="max-w-[1600px] w-full mx-auto flex-1 flex flex-col mb-12">
-            <div className="text-center mt-2 mt-9 mb-8">
+            <div className="text-center mt-2 mb-8">
           <div className="flex items-center justify-center mb-4">
             <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent">
               Spark
@@ -1071,7 +1071,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
         </div>
 
             {/* Split Screen Layout */}
-            <div className="flex gap-6 px-4 flex-1 overflow-hidden max-h-[calc(100vh-200px)] h-full">
+            <div className="flex gap-6 px-4 flex-1 overflow-hidden max-h-[calc(100vh-300px)] h-full">
               {/* Left Side - Industry Trend Discovery */}
               <div className="w-1/2 bg-white/50 rounded-2xl shadow-lg p-8 flex flex-col flex-1 min-w-0 overflow-hidden h-full justify-between">
                 <div>
@@ -1185,7 +1185,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                         </TooltipProvider>
                         </div>
                       </div>
-                    <div className="grid grid-cols-1 gap-3 flex-1 overflow-y-auto">
+                    <div className="grid grid-cols-1 gap-3 flex-1 overflow-y-auto max-h-[calc(70vh-400px)]">
                       {trendingTopics.map((topic, index) => (
                         <button
                           key={topic}
