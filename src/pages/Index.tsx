@@ -1004,14 +1004,13 @@ Format the response as a JSON array of objects with these keys: platform, title,
   return (
     <>
       {showPinModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'url(/pin-bg.png) center center / cover no-repeat' }}>
           <style>{styles}</style>
           <form 
             onSubmit={handlePinSubmit} 
             className={`pin-modal bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center min-w-[360px] ${shakeModal ? 'shake' : ''}`}
           >
             <div className="relative mb-6">
-              <div className="absolute inset-0 bg-black/5 rounded-full blur-xl"></div>
               <Lock className="lock-icon w-10 h-10 text-black relative z-10" />
         </div>
 
@@ -1048,13 +1047,6 @@ Format the response as a JSON array of objects with these keys: platform, title,
               </div>
             )}
             
-            {/* <Button 
-              type="submit" 
-              className="w-full mt-2 text-lg py-3 bg-black hover:bg-gray-900 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
-            >
-              Verify PIN
-            </Button> */}
-            
             <p className="text-xs text-gray-500 mt-4">
               Enter the 4-digit PIN to access the application
             </p>
@@ -1076,7 +1068,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
               </div>
 
             {/* Split Screen Layout */}
-            <div className="flex gap-6 px-4 flex-1 overflow-hidden">
+            <div className="flex gap-6 px-4 flex-1 overflow-hidden max-h-[calc(100vh-301px)]">
               {/* Left Side - Industry Trend Discovery */}
               <div className="w-1/2 bg-white rounded-2xl shadow-lg border border-gray-100 p-8 flex flex-col flex-1 min-w-0 overflow-hidden">
                 <div className="mb-8">
@@ -1157,12 +1149,12 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       </div>
 
                 {/* Trending Topics Section */}
-                <div className="flex-1 overflow-hidden pr-2">
-                  <div className="flex items-center justify-between mb-6">
+                <div className="flex-1 pr-2">
+                  <div className="flex  items-center justify-between mb-6">
                     <div className="flex items-center gap-2">
                       <TrendingUpIcon className="w-5 h-5 text-gray-700" />
                       <span className="text-lg font-semibold text-gray-900">Trending Topics</span>
-                    </div>
+                        </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-500">{trendingTopics.length} topics</span>
                       <TooltipProvider>
@@ -1187,14 +1179,14 @@ Format the response as a JSON array of objects with these keys: platform, title,
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                    </div>
-                  </div>
+                        </div>
+                      </div>
                   {trendingLoading ? (
                     <div className="flex items-center justify-center h-24 text-gray-400">Loading…</div>
                   ) : trendingError ? (
                     <div className="text-xs text-red-500 mb-2">{trendingError}</div>
                   ) : null}
-                  <div className="grid grid-cols-1 gap-3 overflow-y-auto max-h-[40vh] md:max-h-[50vh] lg:max-h-[60vh]">
+                  <div className="grid grid-cols-1 gap-3  overflow-y-auto">
                     {trendingTopics.map((topic, index) => (
                       <button
                         key={topic}
@@ -1218,11 +1210,11 @@ Format the response as a JSON array of objects with these keys: platform, title,
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                             </svg>
-                          </div>
+                        </div>
                         )}
                       </button>
                     ))}
-                  </div>
+                      </div>
                 </div>
 
                 {/* Footer Badges */}
@@ -1240,7 +1232,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       <Wand2 className="w-4 h-4 mr-2" />
                       Multi-Platform
                     </Badge>
-                  </div>
+                        </div>
                 </div>
               </div>
 
@@ -1259,10 +1251,10 @@ Format the response as a JSON array of objects with these keys: platform, title,
                         {isSearching ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                         Regenerate All
                       </Button>
-                    )}
-                  </div>
+                          )}
+                        </div>
                   <span className="text-gray-500 text-sm block mt-1">Click a post to view details</span>
-                </div>
+                      </div>
                 <div className="grid grid-cols-2 gap-5">
                   {generatedPosts.slice(0, 6).map((post, idx) => (
                     <div
@@ -1273,7 +1265,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                       <div className="flex items-center justify-between mb-1">
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${post.platform === 'LinkedIn' ? 'bg-black text-white' : 'bg-gray-200 text-gray-900'}`}>{post.platform}</span>
                         <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">{post.score}% Score</span>
-                      </div>
+                        </div>
                       <div className="font-bold text-base text-gray-900 mb-1">{post.title}</div>
                       <div className="text-gray-700 text-sm mb-2 line-clamp-2">{post.content}</div>
                       <div className="flex items-center gap-4 text-xs mb-2">
@@ -1286,9 +1278,9 @@ Format the response as a JSON array of objects with these keys: platform, title,
                         <span className="flex items-center gap-1 text-gray-700 font-semibold">
                           <span role="img" aria-label="comments">💬</span>{post.comments}
                         </span>
-                      </div>
+                        </div>
                       <div className="text-xs text-gray-400">Created: {post.created}</div>
-                    </div>
+                      </div>
                   ))}
                   {/* Skeleton cards for posts still processing */}
                   {Array.from({ length: Math.max(0, 6 - generatedPosts.length) }).map((_, idx) => (
@@ -1312,7 +1304,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
               </div>
             </div>
           </div>
-          <footer className="w-full border-t border-gray-200 bg-[#F6F5F3] py-8">
+          <footer className="w-full border-t border-gray-200 bg-[#F6F5F3] py-8 mt-auto">
             <div className="max-w-[1600px] mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
               <div>
                 <span className="font-bold text-lg text-black">Spark</span>
@@ -1505,8 +1497,8 @@ Format the response as a JSON array of objects with these keys: platform, title,
                   <div className="text-xs text-gray-500 font-semibold">AI Insights</div>
                   <div className="flex flex-col gap-1 text-sm">
                     <span>Target Area: <b>{selectedPost.targetArea}</b></span>
+                    </div>
                   </div>
-                </div>
 
                 <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2">
                   <div className="text-xs text-gray-500 font-semibold">Performance</div>
@@ -1515,8 +1507,8 @@ Format the response as a JSON array of objects with these keys: platform, title,
                     <span>❤️ <b>{selectedPost.likes}</b> Likes</span>
                     <span>💬 <b>{selectedPost.comments}</b> Comments</span>
                     <span>🔁 <b>{selectedPost.shares}</b> Shares</span>
-                  </div>
                 </div>
+        </div>
 
                 <div className="flex gap-2 mt-auto pt-4">
                   <Button variant="outline" onClick={handleCopyLinkedIn} className="flex-1">Copy</Button>
@@ -1525,10 +1517,10 @@ Format the response as a JSON array of objects with these keys: platform, title,
                     {isRegeneratingPost ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}Regenerate
                   </Button>
                   <Button onClick={handleSharePost} className="flex-1 bg-black text-white hover:bg-gray-900">Post Now</Button>
-                </div>
-              </div>
-            </div>
           </div>
+        </div>
+      </div>
+    </div>
         </div>
       )}
     </>
