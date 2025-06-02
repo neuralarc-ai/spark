@@ -239,6 +239,8 @@ const Index = () => {
   const [listening, setListening] = useState(false);
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
   const [isRegeneratingPost, setIsRegeneratingPost] = useState(false);
+  const [modalImageLoading, setModalImageLoading] = useState(false);
+  const [modalImageError, setModalImageError] = useState(false);
 
   // For 4-digit PIN input
   const pinDigits = [0, 1, 2, 3];
@@ -642,23 +644,12 @@ Format the response as a JSON array of objects with these keys: platform, title,
       const jsonMatch = text.match(/\[.*\]/s);
       let posts: GeneratedPost[] = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
-      // Generate images for each post and display them one by one
-      for (const post of posts) {
-        let imagePrompt = post.content;
-        let imgResult = await generateImage(imagePrompt, apiKey, post.platform);
-        // Retry once with a fallback prompt if image generation fails
-        if (!imgResult.image) {
-          imgResult = await generateImage('Create a visually appealing image for a social media post. ' + post.content, apiKey, post.platform);
-        }
-        // Use a placeholder if still no image
-        const placeholder =
-          'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23e5e7eb"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-size="20">No Image</text></svg>';
-        const newPost = {
-          ...post,
-          imageUrl: imgResult.image || placeholder,
-          imageCaption: imgResult.caption || '',
-        };
-        setGeneratedPosts(prev => [...prev, newPost]);
+      // Only set text and metadata for each post, do NOT generate images here
+      setGeneratedPosts([]); // Clear previous posts
+      for (let i = 0; i < posts.length; i++) {
+        const post = { ...posts[i], imageUrl: '', imageCaption: '' };
+        await new Promise(res => setTimeout(res, 250)); // 250ms delay between cards
+        setGeneratedPosts(prev => [...prev, post]);
       }
     } catch (err) {
       setGeneratedPosts([]);
@@ -667,9 +658,34 @@ Format the response as a JSON array of objects with these keys: platform, title,
     }
   };
 
-  const handleCardClick = (post: GeneratedPost) => {
+  // Handler for card click: generate image if not present
+  const handleCardClick = async (post: GeneratedPost) => {
     setSelectedPost(post);
     setIsModalOpen(true);
+    setModalImageError(false);
+    if (!post.imageUrl) {
+      setModalImageLoading(true);
+      try {
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        let imgResult = await generateImage(post.content, apiKey, post.platform);
+        if (!imgResult.image) {
+          // Retry once automatically
+          imgResult = await generateImage(post.content, apiKey, post.platform);
+        }
+        if (imgResult.image) {
+          const updatedPost = { ...post, imageUrl: imgResult.image || '', imageCaption: imgResult.caption || '' };
+          setSelectedPost(updatedPost);
+          setGeneratedPosts(prev => prev.map(p => (p === post ? updatedPost : p)));
+          setModalImageError(false);
+        } else {
+          setModalImageError(true);
+        }
+      } catch (error) {
+        setModalImageError(true);
+      } finally {
+        setModalImageLoading(false);
+      }
+    }
   };
 
   const handleCloseModal = () => {
@@ -971,7 +987,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
       "Robotics automation"
     ];
     try {
-      const prompt = `List the top 8 trending topics in technology and business on the internet right now. It is currently ${new Date().toISOString()}. Return only a JSON array of short topic strings, no explanations.`;
+      const prompt = `List the top 5 trending topics in technology and business on the internet right now. It is currently ${new Date().toISOString()}. Return only a JSON array of short topic strings, no explanations.`;
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
         {
           method: 'POST',
@@ -1053,22 +1069,18 @@ Format the response as a JSON array of objects with these keys: platform, title,
           <div className="mt-10 text-center text-black text-lg font-medium select-none flex items-center justify-center gap-2">
             <span>Spark, A Thing By NeuralArc</span>
             <img src="/neuralarc-logo.png" alt="NeuralArc Logo" className="h-6 w-auto invert" />
-          </div>
+              </div>
         </div>
       )}
       {!showPinModal && (
-        <div className="min-h-screen flex flex-col" style={{ background: 'url(/main-bg.png) center center / cover no-repeat' }}>
+        <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F6F5F3' }}>
           <div className="max-w-[1600px] w-full mx-auto flex-1 flex flex-col mb-12">
-            <div className="text-center mt-2 mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent">
-              Spark
-            </h1>
-          </div>
-              <p className="text-black text-lg">
-            AI-powered social media content generator
-          </p>
-        </div>
+            <div className="text-center mt-6 mb-8">
+              <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent inline-block">
+                SparkAI-Social media content generator
+                <span className="text-4xl font-normal text-black ml-3 align-middle"></span>
+              </h1>
+              </div>
 
             {/* Split Screen Layout */}
             <div className="flex gap-6 px-4 flex-1 overflow-hidden max-h-[calc(100vh-300px)] h-full">
@@ -1076,89 +1088,102 @@ Format the response as a JSON array of objects with these keys: platform, title,
               <div className="w-1/2 bg-white/50 rounded-2xl shadow-lg p-8 flex flex-col flex-1 min-w-0 overflow-hidden h-full justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-6">
-                    
                     <span className="text-2xl font-semibold text-gray-900">Industry Trend Discovery</span>
-              </div>
-
+                  </div>
                   {/* Search Section */}
-                  <div className="space-y-4">
-                    <div className="space-y-4">
-                      <div className="bg-[#F7F6F3] rounded-2xl shadow-md p-8 flex flex-col" style={{ boxShadow: '0 4px 24px 0 rgba(0,0,0,0.04)', borderImage: 'url(/main-bg.png) 30 round', borderWidth: '17.29px', height: '260px' }}>
-                        <div className="flex flex-col flex-1">
-                          <Textarea
-                            id="search-textarea"
-                            value={searchValue}
-                            onChange={e => setSearchValue(e.target.value)}
-                            placeholder="Type a topic, keyword, or trend…"
-                            className="w-full h-full text-base rounded-xl border border-gray-200 bg-[#F7F6F3] focus:border-black focus:bg-white px-6 py-4 shadow-none transition-all duration-200 resize-none mb-2 font-sans text-gray-900 placeholder:text-gray-400 flex-1"
-                            style={{ minHeight: 0 }}
-                          />
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-xs text-gray-400 font-medium">Type a topic or keyword to discover trends</span>
-                            <div className="flex items-center gap-3">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button
-                                      type="button"
-                                      className="rounded-full bg-gray-100 hover:bg-gray-200 focus:bg-gray-200 p-3 transition-colors border-none focus:outline-none shadow-none"
-                                      onClick={handleRephrase}
-                                      aria-label="Rephrase"
-                                      disabled={rephrasing}
-                                    >
-                                      <Wand2 className={`w-5 h-5 text-gray-700${rephrasing ? ' animate-spin-custom' : ''}`} style={rephrasing ? { animation: 'spin 1s linear infinite' } : {}} />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Rephrase</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button
-                                      type="button"
-                                      className={`rounded-full bg-gray-100 hover:bg-gray-200 focus:bg-gray-200 p-3 transition-colors border-none focus:outline-none shadow-none${listening ? ' animate-pulse' : ''}`}
-                                      onClick={handleVoiceInputForPrompt}
-                                      aria-label="Voice Input"
-                                      disabled={listening}
-                                    >
-                                      <Mic className={`w-5 h-5 text-gray-700${listening ? ' animate-pulse' : ''}`} />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Voice Input</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              <Button 
-                                className="h-12 px-8 bg-black text-white rounded-xl text-base font-semibold hover:bg-gray-900 transition-all duration-200 ml-2 shadow-none flex items-center gap-2"
-                                onClick={handleSearch}
-                                disabled={isSearching}
-                              >
-                                {isSearching ? (
-                                  <RefreshCw className="w-5 h-5 animate-spin" />
-                                ) : (
-                                  <>
-                                    Generate Content <ArrowUpRight className="w-5 h-5" />
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          </div>
+                  <div
+                    style={{
+                      position: 'relative',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      marginBottom: '1.5rem',
+                      height: '260px',
+                      background: 'url(/main-bg.png) center/cover',
+                      padding: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <div
+                      className="shadow-md flex flex-col p-3"
+                      style={{
+                        borderRadius: '8px',
+                        height: '100%',
+                        width: '100%',
+                        background: 'rgba(247,246,243,0.96)',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <div className="flex flex-col flex-1">
+                <Textarea
+                          id="search-textarea"
+                          value={searchValue}
+                          onChange={e => setSearchValue(e.target.value)}
+                          placeholder="Type a topic, keyword, or trend…"
+                          className="w-full h-full text-base rounded-xl border border-gray-200 bg-[#F7F6F3] focus:border-black focus:bg-white px-6 py-4 shadow-none transition-all duration-200 resize-none mb-2 font-sans text-gray-900 placeholder:text-gray-400 flex-1"
+                          style={{ minHeight: 0 }}
+                        />
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-xs text-gray-400 font-medium">Type a topic or keyword to discover trends</span>
+                          <div className="flex items-center gap-3">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="rounded-full bg-gray-100 hover:bg-gray-200 focus:bg-gray-200 p-3 transition-colors border-none focus:outline-none shadow-none"
+                                    onClick={handleRephrase}
+                                    aria-label="Rephrase"
+                                    disabled={rephrasing}
+                                  >
+                                    <Wand2 className={`w-5 h-5 text-gray-700${rephrasing ? ' animate-spin-custom' : ''}`} style={rephrasing ? { animation: 'spin 1s linear infinite' } : {}} />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Rephrase</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className={`rounded-full bg-gray-100 hover:bg-gray-200 focus:bg-gray-200 p-3 transition-colors border-none focus:outline-none shadow-none${listening ? ' animate-pulse' : ''}`}
+                                    onClick={handleVoiceInputForPrompt}
+                                    aria-label="Voice Input"
+                                    disabled={listening}
+                                  >
+                                    <Mic className={`w-5 h-5 text-gray-700${listening ? ' animate-pulse' : ''}`} />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Voice Input</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+              <Button 
+                              className="h-12 px-8 bg-black text-white rounded-xl text-base font-semibold hover:bg-gray-900 transition-all duration-200 ml-2 shadow-none flex items-center gap-2"
+                              onClick={handleSearch}
+                              disabled={isSearching}
+                            >
+                              {isSearching ? (
+                                <RefreshCw className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                                  Generate Content <ArrowUpRight className="w-5 h-5" />
+                  </>
+                )}
+              </Button>
+                        </div>
                         </div>
                       </div>
-                        </div>
-                        </div>
-                      </div>
-
-                {/* Trending Topics Section */}
-                <div className="">
-                  <div className="bg-transparent rounded-xl shadow p-4 mb-4 h-full flex flex-col">
+                    </div>
+                  </div>
+                  {/* Trending Topics Section - now direct child of left card */}
+                  <div className="flex flex-col mt-4">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <TrendingUpIcon className="w-6 h-6 text-gray-700" />
                         <span className="text-lg font-semibold text-gray-900">Trending Topics</span>
-                        </div>
+                      </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-500">{trendingTopics.length} topics</span>
                         <TooltipProvider>
@@ -1214,7 +1239,7 @@ Format the response as a JSON array of objects with these keys: platform, title,
                         </button>
                       ))}
                       </div>
-                  </div>
+                        </div>
                 </div>
               </div>
 
@@ -1341,15 +1366,57 @@ Format the response as a JSON array of objects with these keys: platform, title,
                   <span className="font-semibold text-sm text-gray-700">Best Time:</span>
                   <span className="text-sm text-gray-900 font-bold">{selectedPost.bestTime}</span>
                 </div>
-                {selectedPost.imageUrl && (
-                  <div className="flex-1 min-h-0 relative">
-                    <div className="relative aspect-[4/3] sm:aspect-[3/2] md:aspect-[16/9] w-full rounded-xl overflow-hidden mb-2">
-                      <img 
-                        src={selectedPost.imageUrl} 
-                        alt="Generated" 
-                        className="absolute inset-0 w-full h-full object-cover" 
-                      />
-                      {/* Download button overlay */}
+                <div className="flex-1 min-h-0 relative">
+                  <div className="relative aspect-[4/3] sm:aspect-[3/2] md:aspect-[16/9] w-full rounded-xl overflow-hidden mb-2 flex items-center justify-center bg-gray-100">
+                    {modalImageError ? (
+                      <div className="flex flex-col items-center justify-center w-full h-full text-red-500">
+                        <span>Image generation failed.</span>
+                        <button
+                          className="mt-2 px-4 py-2 bg-black text-white rounded"
+                          onClick={async () => {
+                            setModalImageError(false);
+                            setModalImageLoading(true);
+                            try {
+                              const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+                              let imgResult = await generateImage(selectedPost.content, apiKey, selectedPost.platform);
+                              if (!imgResult.image) {
+                                imgResult = await generateImage(selectedPost.content, apiKey, selectedPost.platform);
+                              }
+                              if (imgResult.image) {
+                                const updatedPost = { ...selectedPost, imageUrl: imgResult.image || '', imageCaption: imgResult.caption || '' };
+                                setSelectedPost(updatedPost);
+                                setGeneratedPosts(prev => prev.map(p => (p === selectedPost ? updatedPost : p)));
+                                setModalImageError(false);
+                              } else {
+                                setModalImageError(true);
+                              }
+                            } catch (error) {
+                              setModalImageError(true);
+                            } finally {
+                              setModalImageLoading(false);
+                            }
+                          }}
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    ) : modalImageLoading && !selectedPost.imageUrl ? (
+                      <div className="flex flex-col items-center justify-center w-full h-full">
+                        <svg className="animate-spin h-10 w-10 text-gray-400 mb-2" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                        </svg>
+                        <span className="text-gray-500 text-sm">Generating image...</span>
+                      </div>
+                    ) : selectedPost.imageUrl ? (
+                      <img src={selectedPost.imageUrl} alt="Generated" className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center w-full h-full text-gray-400">
+                        <span>No image yet</span>
+                      </div>
+                    )}
+                    {/* Download button overlay */}
+                    {selectedPost.imageUrl && (
                       <button
                         type="button"
                         onClick={() => {
@@ -1367,116 +1434,116 @@ Format the response as a JSON array of objects with these keys: platform, title,
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
                         </svg>
                       </button>
-                    </div>
-                    {/* Custom prompt input and regenerate button */}
-                    <div className="flex flex-col gap-3 mt-4 mb-2">
-                      <Textarea
-                        value={customImagePrompt}
-                        onChange={e => setCustomImagePrompt(e.target.value)}
-                        placeholder="Enter custom prompt for image generation. Be specific about style, mood, and composition..."
-                        className="w-full min-h-[100px] max-h-[200px] overflow-y-auto text-sm rounded-xl border border-gray-200 focus:border-black bg-gray-50 resize-none"
-                      />
-                      <div className="flex items-center gap-x-3 min-w-0 overflow-x-auto flex-wrap gap-y-2 mb-2">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                    <Button 
-                              onClick={handleVoiceInputForPrompt}
-                              disabled={listening}
-                      variant="outline"
-                              size="icon"
-                              className="rounded-full min-w-0"
-                              aria-label="Voice Input"
-                    >
-                              <Mic className={`w-5 h-5${listening ? ' animate-pulse' : ''}`} />
-                    </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Use voice to fill the prompt
-                          </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                        <Button 
-                              onClick={() => {
-                                setCustomImagePrompt(selectedPost.content);
-                              }}
-                              disabled={isRegeneratingImage}
-                      variant="outline"
-                              className="flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
-                    >
-                              <Wand2 className="w-4 h-4 mr-2" />
-                              <span>Use Text</span>
-                        </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Generate image using post content as prompt
-                          </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                        <Button 
-                              onClick={async () => {
-                                setIsEnhancingPrompt(true);
-                                try {
-                                  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-                                  const prompt = `Rephrase the following text to make it more descriptive, creative, and visually inspiring for an AI image generator. Return only the improved version, no explanations.\n\n${customImagePrompt}`;
-                                  const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                      contents: [{ parts: [{ text: prompt }] }],
-                                      generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 256 }
-                                    })
-                                  });
-                                  if (!response.ok) throw new Error('Failed to enhance prompt');
-                                  const data = await response.json();
-                                  const newPrompt = data.candidates[0].content.parts[0].text.trim();
-                                  setCustomImagePrompt(newPrompt);
-                                } catch (error) {
-                                  // Optionally show a toast or error
-                                } finally {
-                                  setIsEnhancingPrompt(false);
-                                }
-                              }}
-                              disabled={isRegeneratingImage || isEnhancingPrompt}
-                              variant="outline"
-                              className="flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
-                        >
-                              {isEnhancingPrompt ? (
-                                <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                              ) : (
-                                <Sparkles className="w-4 h-4 mr-2" />
-                              )}
-                              <span>Enhance</span>
-                        </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Rephrase and enhance the prompt using AI
-                          </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                        <Button 
-                              onClick={handleRegenerateImage}
-                              disabled={isRegeneratingImage}
-                              className="bg-black text-white hover:bg-gray-900 flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
-                            >
-                              {isRegeneratingImage ? (
-                                <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                              ) : (
-                                <RefreshCw className="w-4 h-4 mr-2" />
-                              )}
-                              <span>Generate</span>
-                        </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Generate new image with current prompt
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
+                    )}
+                  </div>
+                  {/* Toolkit: always visible below image area */}
+                  <div className="flex flex-col gap-3 mt-4 mb-2">
+                    <Textarea
+                      value={customImagePrompt}
+                      onChange={e => setCustomImagePrompt(e.target.value)}
+                      placeholder="Enter custom prompt for image generation. Be specific about style, mood, and composition..."
+                      className="w-full min-h-[100px] max-h-[200px] overflow-y-auto text-sm rounded-xl border border-gray-200 focus:border-black bg-gray-50 resize-none"
+                    />
+                    <div className="flex items-center gap-x-3 min-w-0 overflow-x-auto flex-wrap gap-y-2 mb-2">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            onClick={handleVoiceInputForPrompt}
+                            disabled={listening}
+                            variant="outline"
+                            size="icon"
+                            className="rounded-full min-w-0"
+                            aria-label="Voice Input"
+                          >
+                            <Mic className={`w-5 h-5${listening ? ' animate-pulse' : ''}`} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Use voice to fill the prompt
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            onClick={() => {
+                              setCustomImagePrompt(selectedPost.content);
+                            }}
+                            disabled={isRegeneratingImage}
+                            variant="outline"
+                            className="flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
+                          >
+                            <Wand2 className="w-4 h-4 mr-2" />
+                            <span>Use Text</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Generate image using post content as prompt
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            onClick={async () => {
+                              setIsEnhancingPrompt(true);
+                              try {
+                                const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+                                const prompt = `Rephrase the following text to make it more descriptive, creative, and visually inspiring for an AI image generator. Return only the improved version, no explanations.\n\n${customImagePrompt}`;
+                                const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    contents: [{ parts: [{ text: prompt }] }],
+                                    generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 256 }
+                                  })
+                                });
+                                if (!response.ok) throw new Error('Failed to enhance prompt');
+                                const data = await response.json();
+                                const newPrompt = data.candidates[0].content.parts[0].text.trim();
+                                setCustomImagePrompt(newPrompt);
+                              } catch (error) {
+                                // Optionally show a toast or error
+                              } finally {
+                                setIsEnhancingPrompt(false);
+                              }
+                            }}
+                            disabled={isRegeneratingImage || isEnhancingPrompt}
+                            variant="outline"
+                            className="flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
+                          >
+                            {isEnhancingPrompt ? (
+                              <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <Sparkles className="w-4 h-4 mr-2" />
+                            )}
+                            <span>Enhance</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Rephrase and enhance the prompt using AI
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            onClick={handleRegenerateImage}
+                            disabled={isRegeneratingImage}
+                            className="bg-black text-white hover:bg-gray-900 flex-1 min-w-0 px-4 py-2 flex items-center justify-center"
+                          >
+                            {isRegeneratingImage ? (
+                              <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4 mr-2" />
+                            )}
+                            <span>Generate</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Generate new image with current prompt
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
-                )}
+                </div>
 
                 <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2">
                   <div className="text-xs text-gray-500 font-semibold">AI Insights</div>
