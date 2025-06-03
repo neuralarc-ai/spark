@@ -1073,10 +1073,10 @@ Format the response as a JSON array of objects with these keys: platform, title,
         </div>
       )}
       {!showPinModal && (
-        <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F6F5F3' }}>
+        <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F9F9E4' }}>
           <div className="max-w-[1600px] w-full mx-auto flex-1 flex flex-col mb-12">
             <div className="text-center mt-6 mb-8">
-              <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent inline-block">
+              <h1 className="text-xl font-bold bg-black bg-clip-text text-transparent inline-block">
                 SparkAI-Social media content generator
                 <span className="text-4xl font-normal text-black ml-3 align-middle"></span>
               </h1>
